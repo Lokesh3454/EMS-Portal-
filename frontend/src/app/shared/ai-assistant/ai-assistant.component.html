@@ -1,0 +1,112 @@
+<!-- Floating Trigger Orb -->
+<div class="ai-trigger-wrap" [class.open]="isOpen">
+  <button class="ai-fab-button" (click)="toggleChat()" title="Open AI Virtual HR Assistant">
+    <div class="orb-glow"></div>
+    <div class="orb-icon">
+      <i class="fas" [ngClass]="isOpen ? 'fa-times' : 'fa-robot'"></i>
+    </div>
+    <span class="ai-fab-badge" *ngIf="!isOpen">AI</span>
+  </button>
+  <span class="ai-tooltip" *ngIf="!isOpen">Ask HR Copilot</span>
+</div>
+
+<!-- Floating Chat Overlay Panel -->
+<div class="ai-chat-panel glass-modal" *ngIf="isOpen">
+  <!-- Panel Header -->
+  <div class="chat-header">
+    <div class="header-assistant-info">
+      <div class="assistant-avatar">
+        <i class="fas fa-robot"></i>
+        <span class="online-indicator"></span>
+      </div>
+      <div>
+        <h3 class="assistant-name">EMS HR Copilot</h3>
+        <p class="assistant-status">Virtual Workforce Assistant &bull; Always Active</p>
+      </div>
+    </div>
+
+    <div class="chat-header-actions">
+      <button class="btn-chat-tool" (click)="clearChat()" title="Clear conversation">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+      <button class="btn-chat-tool" (click)="closeChat()" title="Minimize chat">
+        <i class="fas fa-minus"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Messages Stream Area -->
+  <div class="chat-messages" #scrollContainer>
+    <div *ngFor="let msg of messages" class="message-row" [ngClass]="msg.sender">
+      <div class="message-avatar" *ngIf="msg.sender === 'assistant'">
+        <i class="fas fa-robot"></i>
+      </div>
+
+      <div class="message-bubble-wrap">
+        <div class="message-bubble">
+          <!-- Formatted Message Body -->
+          <div class="message-text" [innerHTML]="msg.text.replace('\n', '<br>')"></div>
+
+          <!-- Deep-Link Quick Navigation Actions -->
+          <div *ngIf="msg.actions && msg.actions.length > 0" class="action-links-wrap">
+            <span class="action-label"><i class="fas fa-external-link-alt"></i> Direct Actions:</span>
+            <div class="action-buttons-list">
+              <button *ngFor="let act of msg.actions" class="btn-action-chip" (click)="navigateAction(act)">
+                <span>Navigate to {{ act.replace('/', '').toUpperCase() }}</span>
+                <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="message-meta">
+          <span class="message-time">{{ msg.timestamp }}</span>
+        </div>
+
+        <!-- Follow-up Suggestion Chips -->
+        <div *ngIf="msg.suggestions && msg.suggestions.length > 0" class="suggestions-row">
+          <button *ngFor="let sug of msg.suggestions" class="suggestion-chip" (click)="sendMessage(sug)">
+            <i class="far fa-lightbulb"></i> {{ sug }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Thinking / Typing Indicator -->
+    <div *ngIf="isThinking" class="message-row assistant thinking-row">
+      <div class="message-avatar">
+        <i class="fas fa-robot"></i>
+      </div>
+      <div class="thinking-bubble">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Prompts Drawer (If early conversation) -->
+  <div *ngIf="messages.length <= 2" class="quick-prompts-bar">
+    <span class="quick-title"><i class="fas fa-bolt text-amber"></i> Quick inquiries:</span>
+    <div class="quick-chips-scroll">
+      <button *ngFor="let q of quickSuggestions" class="quick-chip" (click)="sendMessage(q)">
+        {{ q }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Input Bar -->
+  <div class="chat-input-bar">
+    <div class="input-wrapper">
+      <input 
+        type="text" 
+        [(ngModel)]="inputText" 
+        (keyup.enter)="sendMessage()" 
+        placeholder="Ask about policy, leave balance, tax, documents..." 
+        [disabled]="isThinking" />
+      <button class="btn-send" [disabled]="!inputText.trim() || isThinking" (click)="sendMessage()">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+  </div>
+</div>

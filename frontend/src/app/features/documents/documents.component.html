@@ -1,0 +1,366 @@
+<div class="documents-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon-wrap header-image-wrap">
+        <img src="assets/images/vault-total-docs.jpg" alt="Document Vault" class="header-topic-img" />
+      </div>
+      <div>
+        <h1 class="page-title">Digital Document Vault &amp; E-Signatures</h1>
+        <p class="page-subtitle">Centralized repository for compliance policies, appointment contracts, tax declarations &amp; legal agreements.</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline" (click)="loadDocuments()">
+        <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i> Refresh
+      </button>
+      <button class="btn btn-primary" (click)="openUploadModal()">
+        <i class="fas fa-file-upload"></i> Upload Document
+      </button>
+    </div>
+  </div>
+
+  <!-- Notification Banners -->
+  <div *ngIf="actionMessage" class="alert alert-success">
+    <i class="fas fa-check-circle"></i>
+    <span>{{ actionMessage }}</span>
+    <button class="alert-close" (click)="actionMessage = ''">&times;</button>
+  </div>
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    <i class="fas fa-exclamation-triangle"></i>
+    <span>{{ errorMessage }}</span>
+    <button class="alert-close" (click)="errorMessage = ''">&times;</button>
+  </div>
+
+  <!-- KPI Metrics Cards With Topic Thematic Imagery (Clickable Filters) -->
+  <div class="kpi-grid">
+    <!-- Card 1: Total Vault Documents -->
+    <div class="kpi-card glass-panel topic-card clickable-kpi" 
+         [class.active-kpi]="activeKpiFilter === 'ALL' && selectedCategory === 'ALL'" 
+         (click)="filterByKpi('ALL')"
+         title="Click to view all vault documents">
+      <div class="kpi-media-row">
+        <div class="kpi-img-frame">
+          <img src="assets/images/vault-total-docs.jpg" alt="Total Vault Documents" class="kpi-topic-img" />
+        </div>
+        <span class="kpi-topic-tag"><i class="fas fa-database"></i> Encrypted Vault</span>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Total Vault Documents</span>
+        <h2 class="kpi-value">{{ totalCount }}</h2>
+      </div>
+      <span class="kpi-sub">Click to show all records</span>
+    </div>
+
+    <!-- Card 2: Digitally Signed -->
+    <div class="kpi-card glass-panel topic-card clickable-kpi" 
+         [class.active-kpi]="activeKpiFilter === 'SIGNED'" 
+         (click)="filterByKpi('SIGNED')"
+         title="Click to view only digitally signed documents">
+      <div class="kpi-media-row">
+        <div class="kpi-img-frame">
+          <img src="assets/images/vault-digitally-signed.jpg" alt="Digitally Signed" class="kpi-topic-img" />
+        </div>
+        <span class="kpi-topic-tag tag-verified"><i class="fas fa-certificate"></i> Verified</span>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Digitally Signed</span>
+        <h2 class="kpi-value">{{ signedCount }}</h2>
+      </div>
+      <span class="kpi-sub">Click to show signed only</span>
+    </div>
+
+    <!-- Card 3: Pending E-Signature -->
+    <div class="kpi-card glass-panel topic-card clickable-kpi" 
+         [class.active-kpi]="activeKpiFilter === 'PENDING'" 
+         (click)="filterByKpi('PENDING')"
+         title="Click to view documents requiring signature">
+      <div class="kpi-media-row">
+        <div class="kpi-img-frame">
+          <img src="assets/images/vault-pending-sign.jpg" alt="Pending E-Signature" class="kpi-topic-img" />
+        </div>
+        <span class="kpi-topic-tag tag-pending" [class.urgent]="pendingSignatureCount > 0"><i class="fas fa-pen-fancy"></i> Action Needed</span>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Pending E-Signature</span>
+        <h2 class="kpi-value">{{ pendingSignatureCount }}</h2>
+      </div>
+      <span class="kpi-sub" [class.urgent]="pendingSignatureCount > 0">Click to show pending only</span>
+    </div>
+
+    <!-- Card 4: Security Compliance -->
+    <div class="kpi-card glass-panel topic-card clickable-kpi" 
+         [class.active-kpi]="activeKpiFilter === 'SECURITY'" 
+         (click)="filterByKpi('SECURITY')"
+         title="Click to view security & policy documents">
+      <div class="kpi-media-row">
+        <div class="kpi-img-frame">
+          <img src="assets/images/vault-security-shield.jpg" alt="Security Compliance" class="kpi-topic-img" />
+        </div>
+        <span class="kpi-topic-tag tag-secure"><i class="fas fa-shield-alt"></i> ISO 27001</span>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Security Compliance</span>
+        <h2 class="kpi-value">100%</h2>
+      </div>
+      <span class="kpi-sub">Click to show policy docs</span>
+    </div>
+  </div>
+
+  <!-- Active Filter Response Banner -->
+  <div *ngIf="activeKpiFilter !== 'ALL' || selectedCategory !== 'ALL' || searchQuery" class="active-filter-bar glass-panel">
+    <div class="active-filter-label">
+      <i class="fas fa-filter text-blue"></i>
+      <span>Showing Respective Documents: 
+        <strong *ngIf="activeKpiFilter === 'SIGNED'">✓ Digitally Signed Documents</strong>
+        <strong *ngIf="activeKpiFilter === 'PENDING'">⚠️ Documents Pending E-Signature</strong>
+        <strong *ngIf="activeKpiFilter === 'SECURITY'">🛡️ Security Compliance &amp; Policy Agreements</strong>
+        <strong *ngIf="selectedCategory !== 'ALL' && activeKpiFilter === 'ALL'">Category: {{ selectedCategory.replace('_', ' ') }}</strong>
+        <span class="filter-count-badge">({{ filteredDocuments.length }} matching)</span>
+      </span>
+    </div>
+    <button class="btn btn-sm btn-outline clear-filter-btn" (click)="clearFilters()">
+      <i class="fas fa-times"></i> Clear Filter &amp; Show All
+    </button>
+  </div>
+
+  <!-- Controls & Category Filters -->
+  <div class="toolbar-card glass-panel">
+    <div class="filter-tabs">
+      <button class="tab-btn" [class.active]="selectedCategory === 'ALL' && activeKpiFilter === 'ALL'" (click)="setCategory('ALL')">
+        All Documents
+      </button>
+      <button class="tab-btn" [class.active]="selectedCategory === 'OFFER_LETTER'" (click)="setCategory('OFFER_LETTER')">
+        Offer Letters
+      </button>
+      <button class="tab-btn" [class.active]="selectedCategory === 'POLICY_AGREEMENT'" (click)="setCategory('POLICY_AGREEMENT')">
+        Policies &amp; NDA
+      </button>
+      <button class="tab-btn" [class.active]="selectedCategory === 'TAX_DECLARATION'" (click)="setCategory('TAX_DECLARATION')">
+        Tax &amp; 12BB
+      </button>
+      <button class="tab-btn" [class.active]="selectedCategory === 'APPRAISAL_LETTER'" (click)="setCategory('APPRAISAL_LETTER')">
+        Appraisals
+      </button>
+      <button class="tab-btn" [class.active]="selectedCategory === 'CERTIFICATE'" (click)="setCategory('CERTIFICATE')">
+        Certificates
+      </button>
+    </div>
+
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" [(ngModel)]="searchQuery" placeholder="Search by title, category, keywords..." />
+      <button *ngIf="searchQuery" class="clear-search" (click)="searchQuery = ''">&times;</button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state glass-panel">
+    <div class="spinner"></div>
+    <p>Decrypting and loading documents from vault...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && filteredDocuments.length === 0" class="empty-state glass-panel">
+    <div class="empty-state-img-wrap">
+      <img src="assets/images/vault-total-docs.jpg" alt="Empty Vault" class="empty-topic-img" />
+    </div>
+    <h3>No documents found</h3>
+    <p>No documents match your current filter criteria or have been uploaded yet.</p>
+    <button class="btn btn-primary" (click)="openUploadModal()">
+      <i class="fas fa-upload"></i> Upload First Document
+    </button>
+  </div>
+
+  <!-- Documents Grid -->
+  <div *ngIf="!loading && filteredDocuments.length > 0" class="documents-grid">
+    <div *ngFor="let doc of filteredDocuments" class="doc-card glass-panel" [class.needs-sign]="!doc.isSigned">
+      <div class="doc-card-top">
+        <div class="doc-thumb-frame">
+          <img [src]="getDocThumbnail(doc.documentType)" [alt]="doc.documentType" class="doc-thumb-img" />
+        </div>
+        <div class="doc-meta-info">
+          <span class="badge-type">{{ doc.documentType.replace('_', ' ') }}</span>
+          <span class="file-size"><i class="fas fa-paperclip"></i> {{ doc.fileSize }} &bull; {{ doc.fileType }}</span>
+        </div>
+      </div>
+
+      <div class="doc-card-body">
+        <h3 class="doc-title" [title]="doc.title">{{ doc.title }}</h3>
+        <p class="doc-owner"><i class="fas fa-user-check"></i> {{ doc.employeeName }}</p>
+        <p class="doc-date"><i class="far fa-calendar-alt"></i> Uploaded: {{ doc.uploadDate | date:'mediumDate' }}</p>
+      </div>
+
+      <!-- Signature Status Banner -->
+      <div class="signature-status-bar" [class.signed]="doc.isSigned" [class.unsigned]="!doc.isSigned">
+        <span *ngIf="doc.isSigned">
+          <i class="fas fa-check-circle"></i> E-Signed: {{ doc.signedAt | date:'mediumDate' }}
+        </span>
+        <span *ngIf="!doc.isSigned" class="action-req">
+          <i class="fas fa-pen-nib"></i> Pending E-Signature
+        </span>
+      </div>
+
+      <div class="doc-card-actions">
+        <button class="btn btn-sm btn-outline" (click)="openPreview(doc)">
+          <i class="fas fa-eye"></i> View
+        </button>
+        <button *ngIf="!doc.isSigned" class="btn btn-sm btn-sign" (click)="openPreview(doc)">
+          <i class="fas fa-file-signature"></i> Sign Now
+        </button>
+        <button class="btn btn-sm btn-icon" (click)="printOrDownload(doc)" title="Print / Export">
+          <i class="fas fa-download"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Document In-App Preview & E-Signature Modal -->
+  <div *ngIf="previewModalDoc" class="modal-overlay">
+    <div class="modal-content doc-preview-modal glass-modal">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <img [src]="getDocThumbnail(previewModalDoc.documentType)" alt="Vault Document" class="modal-topic-avatar" />
+          <div>
+            <h3>{{ previewModalDoc.title }}</h3>
+            <span class="badge badge-sm badge-pill">{{ previewModalDoc.documentType }} &bull; Vault Record #{{ previewModalDoc.id }}</span>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closePreview()">&times;</button>
+      </div>
+
+      <div class="modal-body doc-reader-body">
+        <!-- Corporate Document Paper Layout -->
+        <div class="doc-paper">
+          <div class="doc-paper-header">
+            <div class="corp-logo">
+              <img src="assets/images/vault-total-docs.jpg" class="corp-logo-mini" alt="Logo" />
+              <span>EMS ENTERPRISE CORP</span>
+            </div>
+            <div class="corp-doc-meta">
+              <span>DOC REF: EMS-DOC-2026-{{ previewModalDoc.id }}</span>
+              <span>DATE: {{ previewModalDoc.uploadDate | date:'longDate' }}</span>
+            </div>
+          </div>
+
+          <div class="doc-watermark">CONFIDENTIAL &bull; EMS OFFICIAL</div>
+
+          <div class="doc-content-text">
+            <h2 class="doc-main-heading">{{ previewModalDoc.title }}</h2>
+            <div class="doc-recipient-box">
+              <p><strong>Issued To:</strong> {{ previewModalDoc.employeeName }}</p>
+              <p><strong>Compliance Standard:</strong> ISO 27001 / Digital IT Signature Act §2026</p>
+            </div>
+
+            <div class="doc-legal-text">
+              {{ previewModalDoc.documentContent }}
+            </div>
+
+            <!-- Signature Certificate Box -->
+            <div class="signature-certificate-box" [class.verified]="previewModalDoc.isSigned">
+              <div class="sig-cert-header">
+                <i class="fas" [ngClass]="previewModalDoc.isSigned ? 'fa-certificate text-green' : 'fa-pen-fancy text-amber'"></i>
+                <h4>Digital Signature Verification</h4>
+              </div>
+
+              <!-- Signed State -->
+              <div *ngIf="previewModalDoc.isSigned" class="signed-stamp-details">
+                <div class="stamp-seal">
+                  <i class="fas fa-check-double"></i>
+                  <span>VERIFIED</span>
+                </div>
+                <div class="stamp-info">
+                  <p class="signer-name">{{ previewModalDoc.employeeName }}</p>
+                  <p class="signer-meta">Digitally signed &amp; timestamped: {{ previewModalDoc.signedAt | date:'medium' }}</p>
+                  <p class="hash-code">Hash: SHA256-{{ previewModalDoc.id }}9b8a7c2e01df654a3298cde78</p>
+                </div>
+              </div>
+
+              <!-- Unsigned / Sign Now Form -->
+              <div *ngIf="!previewModalDoc.isSigned" class="signing-flow">
+                <p class="sign-instruction">
+                  Please review the document above carefully. Checking the agreement box and clicking "Adopt &amp; Sign" applies a cryptographically secure digital signature to this record.
+                </p>
+
+                <div class="signature-preview-card">
+                  <span class="preview-label">Generated Digital Signature Preview:</span>
+                  <div class="cursive-signature">{{ signerName }}</div>
+                  <span class="preview-audit">Audit IP: 127.0.0.1 &bull; Signer: {{ signerName }}</span>
+                </div>
+
+                <label class="consent-checkbox">
+                  <input type="checkbox" [(ngModel)]="signatureConsent" />
+                  <span>I, <strong>{{ signerName }}</strong>, acknowledge that I have read, understood, and agree to be legally bound by the terms outlined in this document.</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="closePreview()">Close</button>
+        <button class="btn btn-secondary" (click)="printOrDownload(previewModalDoc)">
+          <i class="fas fa-print"></i> Print / PDF
+        </button>
+        <button *ngIf="!previewModalDoc.isSigned" 
+                class="btn btn-primary" 
+                [disabled]="!signatureConsent || isSigning"
+                (click)="signCurrentDocument()">
+          <i class="fas" [class.fa-file-signature]="!isSigning" [class.fa-spinner]="isSigning" [class.fa-spin]="isSigning"></i>
+          {{ isSigning ? 'Affixing Digital Signature...' : 'Adopt & Sign Electronically' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Modal -->
+  <div *ngIf="showUploadModal" class="modal-overlay">
+    <div class="modal-content glass-modal upload-modal">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <img src="assets/images/vault-total-docs.jpg" alt="Upload to Vault" class="modal-topic-avatar" />
+          <h3>Upload Document to Vault</h3>
+        </div>
+        <button class="btn-close" (click)="closeUploadModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Document Title *</label>
+          <input type="text" [(ngModel)]="uploadTitle" class="form-control" placeholder="e.g. FY 2026-27 Investment Declaration / Degree Certificate" />
+        </div>
+
+        <div class="form-group">
+          <label>Document Category *</label>
+          <select [(ngModel)]="uploadType" class="form-control">
+            <option value="TAX_DECLARATION">Tax Declaration (Form 12BB / Proofs)</option>
+            <option value="POLICY_AGREEMENT">Policy Agreement &amp; NDA</option>
+            <option value="OFFER_LETTER">Employment &amp; Offer Letter</option>
+            <option value="APPRAISAL_LETTER">Appraisal &amp; Compensation Letter</option>
+            <option value="CERTIFICATE">Professional Certification / Degree</option>
+            <option value="ID_PROOF">Government Identity Proof</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Document Content / Notes</label>
+          <textarea [(ngModel)]="uploadContent" rows="4" class="form-control" placeholder="Enter document text, declarations, or upload notes..."></textarea>
+        </div>
+
+        <div class="upload-dropzone">
+          <img src="assets/images/vault-total-docs.jpg" class="dropzone-topic-img" alt="Dropzone" />
+          <p>Drag &amp; drop PDF or scanned copy here, or browse files</p>
+          <span class="file-limits">Supported formats: PDF, DOCX, PNG up to 15MB</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="closeUploadModal()">Cancel</button>
+        <button class="btn btn-primary" (click)="submitUpload()">
+          <i class="fas fa-check"></i> Upload &amp; Encrypt
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

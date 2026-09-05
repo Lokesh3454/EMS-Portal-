@@ -1,0 +1,354 @@
+<div class="dashboard-page">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="greeting-badge">
+        <i class="bi bi-sun-fill"></i> {{ greeting }}
+      </div>
+      <h1 class="page-title">{{ user?.fullName || 'Admin' }} <span class="wave">👋</span></h1>
+      <p class="page-subtitle">{{ getRoleLabel(user?.role) }} · Here's what's happening today</p>
+    </div>
+    <div class="header-right">
+      <div class="date-badge">
+        <i class="bi bi-calendar3"></i>
+        <span>{{ recentTime | date:'EEEE, MMMM d, y' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stat Cards for Admin / HR / Manager (Clickable) -->
+  <div class="stats-grid" *ngIf="!loading && !authService.isEmployee()">
+    <div class="stat-card stat-blue clickable-card" (click)="goToEmployees('')" title="Click to view all employees in directory">
+      <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="stat-info">
+        <div class="stat-number">{{ stats.total }}</div>
+        <div class="stat-label">Total Employees</div>
+        <div class="stat-trend"><i class="bi bi-arrow-up-right"></i> View all directory <i class="bi bi-arrow-right action-hint"></i></div>
+      </div>
+      <div class="stat-bg-icon"><i class="bi bi-people-fill"></i></div>
+    </div>
+
+    <div class="stat-card stat-green clickable-card" (click)="goToEmployees('ACTIVE')" title="Click to view only active employees">
+      <div class="stat-icon"><i class="bi bi-person-check-fill"></i></div>
+      <div class="stat-info">
+        <div class="stat-number">{{ stats.active }}</div>
+        <div class="stat-label">Active Employees</div>
+        <div class="stat-trend"><i class="bi bi-circle-fill text-success"></i> View active list <i class="bi bi-arrow-right action-hint"></i></div>
+      </div>
+      <div class="stat-bg-icon"><i class="bi bi-person-check-fill"></i></div>
+    </div>
+
+    <div class="stat-card stat-orange clickable-card" (click)="goToEmployees('INACTIVE')" title="Click to view inactive/deactivated employees">
+      <div class="stat-icon"><i class="bi bi-person-dash-fill"></i></div>
+      <div class="stat-info">
+        <div class="stat-number">{{ stats.inactive }}</div>
+        <div class="stat-label">Inactive Employees</div>
+        <div class="stat-trend"><i class="bi bi-dash-circle-fill"></i> View inactive list <i class="bi bi-arrow-right action-hint"></i></div>
+      </div>
+      <div class="stat-bg-icon"><i class="bi bi-person-dash-fill"></i></div>
+    </div>
+
+    <div class="stat-card stat-purple clickable-card" *ngIf="canManage()" (click)="goToDepartments()" title="Click to open departments management">
+      <div class="stat-icon"><i class="bi bi-diagram-3-fill"></i></div>
+      <div class="stat-info">
+        <div class="stat-number">7</div>
+        <div class="stat-label">Departments</div>
+        <div class="stat-trend"><i class="bi bi-building"></i> View departments <i class="bi bi-arrow-right action-hint"></i></div>
+      </div>
+      <div class="stat-bg-icon"><i class="bi bi-diagram-3-fill"></i></div>
+    </div>
+  </div>
+
+  <!-- Personal Snapshot Cards for Employee -->
+  <div class="stats-grid" *ngIf="!loading && authService.isEmployee()">
+    <div class="stat-card stat-blue">
+      <div class="stat-icon"><i class="bi bi-person-vcard"></i></div>
+      <div class="stat-info">
+        <div class="stat-number" style="font-size: 1.5rem; font-family: monospace;">{{ myProfile?.empId || 'EMP' }}</div>
+        <div class="stat-label">Employee ID</div>
+        <div class="stat-trend"><i class="bi bi-shield-check"></i> Verified identity</div>
+      </div>
+      <div class="stat-bg-icon"><i class="bi bi-person-vcard"></i></div>
+    </div>
+
+    <div class="stat-card stat-green">
+      <div class="stat-icon"><i class="bi bi-buildings-fill"></i></div>
+      <div class="stat-info">
+        <div class="stat-number" style="font-size: 1.3rem;">{{ myProfile?.departmentName || 'Assigned Dept' }}</div>
+        <div class="stat-label">Department</div>
+        <div class="stat-trend"><i class="bi bi-diagram-3"></i> Team Org</div>
+      </div>
+      <div class="stat-bg-icon"><i class="bi bi-buildings"></i></div>
+    </div>
+
+    <div class="stat-card stat-orange">
+      <div class="stat-icon"><i class="bi bi-briefcase-fill"></i></div>
+      <div class="stat-info">
+        <div class="stat-number" style="font-size: 1.25rem;">{{ myProfile?.designation || 'Specialist' }}</div>
+        <div class="stat-label">Official Designation</div>
+        <div class="stat-trend"><i class="bi bi-award"></i> Current role</div>
+      </div>
+      <div class="stat-bg-icon"><i class="bi bi-briefcase"></i></div>
+    </div>
+
+    <div class="stat-card stat-purple">
+      <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+      <div class="stat-info">
+        <div class="stat-number" style="font-size: 1.4rem;">{{ myProfile?.status || 'ACTIVE' }}</div>
+        <div class="stat-label">Account Status</div>
+        <div class="stat-trend"><i class="bi bi-clock-history"></i> Full Time</div>
+      </div>
+      <div class="stat-bg-icon"><i class="bi bi-check-circle"></i></div>
+    </div>
+  </div>
+
+  <!-- Loading skeleton -->
+  <div class="stats-grid" *ngIf="loading">
+    <div class="stat-card skeleton" *ngFor="let i of [1,2,3,4]">
+      <div class="skeleton-box h-16 w-16 rounded-lg mb-3"></div>
+      <div class="skeleton-box h-8 w-24 mb-2"></div>
+      <div class="skeleton-box h-4 w-32"></div>
+    </div>
+  </div>
+
+  <!-- Phase 2 Operations Row (Attendance & Leaves) -->
+  <div class="operations-grid">
+    <!-- Attendance Card -->
+    <div class="operation-card" (click)="goToAttendance()">
+      <div class="op-header">
+        <div class="op-icon clock-icon"><i class="bi bi-clock-history"></i></div>
+        <div class="op-title-wrap">
+          <h4>Daily Attendance</h4>
+          <p *ngIf="!authService.isEmployee() && attendanceSummary">
+            {{ attendanceSummary.presentToday }} clocked in today · {{ attendanceSummary.attendanceRate }}% attendance rate
+          </p>
+          <p *ngIf="authService.isEmployee()">
+            {{ todayAttendance ? (todayAttendance.clockOutTime ? 'Shift Completed (' + todayAttendance.totalHours + ' hrs)' : 'Clocked In at ' + todayAttendance.clockInTime) : 'Not Clocked In Today' }}
+          </p>
+        </div>
+      </div>
+      <div class="op-footer">
+        <span class="op-status" [class.active-green]="todayAttendance || (attendanceSummary && attendanceSummary.presentToday > 0)">
+          <i class="bi bi-circle-fill"></i>
+          {{ authService.isEmployee() ? (todayAttendance ? 'Logged Today' : 'Action Required') : 'Live Attendance Roster' }}
+        </span>
+        <span class="op-link">Open Attendance <i class="bi bi-arrow-right"></i></span>
+      </div>
+    </div>
+
+    <!-- Leaves Card -->
+    <div class="operation-card" (click)="goToLeaves()">
+      <div class="op-header">
+        <div class="op-icon leave-icon"><i class="bi bi-calendar-check-fill"></i></div>
+        <div class="op-title-wrap">
+          <h4>Leave & Time-Off</h4>
+          <p *ngIf="!authService.isEmployee()">
+            {{ pendingLeavesCount }} pending leave approval request{{ pendingLeavesCount === 1 ? '' : 's' }}
+          </p>
+          <p *ngIf="authService.isEmployee() && leaveBalance">
+            {{ leaveBalance.totalRemaining }} days remaining in {{ leaveBalance.year }} annual quota
+          </p>
+        </div>
+      </div>
+      <div class="op-footer">
+        <span class="op-status" [class.active-amber]="pendingLeavesCount > 0">
+          <i class="bi bi-circle-fill"></i>
+          {{ authService.isEmployee() ? (leaveBalance ? leaveBalance.casualLeavesRemaining + ' Casual · ' + leaveBalance.sickLeavesRemaining + ' Sick' : 'View Balances') : (pendingLeavesCount + ' Awaiting Review') }}
+        </span>
+        <span class="op-link">Open Leave Portal <i class="bi bi-arrow-right"></i></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Visual Analytics Suite: Department Headcount Doughnut & 14-Day Attendance Trends -->
+  <div class="analytics-section">
+    <div class="analytics-header">
+      <div>
+        <h3 class="analytics-title"><i class="bi bi-graph-up-arrow"></i> Workforce Intelligence & Analytics</h3>
+        <p class="analytics-subtitle">Real-time organizational headcount distribution and rolling attendance velocity</p>
+      </div>
+      <div class="analytics-actions">
+        <span class="analytics-pill"><i class="bi bi-lightning-charge-fill"></i> Live Metrics</span>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <!-- Chart 1: Department Distribution Doughnut -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="cch-title">
+            <i class="bi bi-pie-chart-fill text-blue"></i>
+            <span>Department Distribution</span>
+          </div>
+          <span class="chart-sub-tag">{{ deptChartData.length }} Departments</span>
+        </div>
+
+        <div class="donut-chart-container">
+          <div class="svg-donut-wrapper">
+            <svg viewBox="0 0 160 160" class="donut-svg">
+              <circle cx="80" cy="80" r="60" class="donut-base-ring"></circle>
+              <circle
+                *ngFor="let item of deptChartData"
+                cx="80"
+                cy="80"
+                r="60"
+                class="donut-segment"
+                [style.stroke]="item.color"
+                [style.stroke-dasharray]="item.dashArray"
+                [style.stroke-dashoffset]="item.dashOffset"
+                (mouseenter)="activeDeptHover = item"
+                (mouseleave)="activeDeptHover = null">
+              </circle>
+            </svg>
+            <div class="donut-center-info">
+              <span class="center-val">{{ activeDeptHover ? activeDeptHover.count : (stats.total || 36) }}</span>
+              <span class="center-lbl">{{ activeDeptHover ? activeDeptHover.name : 'Total Staff' }}</span>
+            </div>
+          </div>
+
+          <div class="donut-legend-list">
+            <div 
+              *ngFor="let item of deptChartData" 
+              class="legend-row" 
+              [class.active-hover]="activeDeptHover?.name === item.name"
+              (mouseenter)="activeDeptHover = item"
+              (mouseleave)="activeDeptHover = null">
+              <div class="legend-color-dot" [style.background-color]="item.color"></div>
+              <span class="legend-name">{{ item.name }}</span>
+              <span class="legend-count">{{ item.count }}</span>
+              <span class="legend-pct">{{ item.percentage }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart 2: 14-Day Attendance Trend Area Chart -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="cch-title">
+            <i class="bi bi-activity text-emerald"></i>
+            <span>14-Day Attendance Velocity</span>
+          </div>
+          <div class="trend-kpi-chips">
+            <span class="kpi-chip peak"><i class="bi bi-trophy-fill"></i> Peak: {{ peakAttendanceRate }}%</span>
+            <span class="kpi-chip avg"><i class="bi bi-speedometer2"></i> Avg: {{ avgAttendanceRate }}%</span>
+          </div>
+        </div>
+
+        <div class="area-chart-container">
+          <div class="svg-area-wrapper">
+            <svg viewBox="0 0 500 150" class="area-svg" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="attendanceGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#10b981" stop-opacity="0.38"></stop>
+                  <stop offset="100%" stop-color="#10b981" stop-opacity="0.02"></stop>
+                </linearGradient>
+              </defs>
+
+              <!-- Grid Horizontal Guide Lines -->
+              <line x1="20" y1="30" x2="480" y2="30" class="chart-grid-line"></line>
+              <line x1="20" y1="75" x2="480" y2="75" class="chart-grid-line"></line>
+              <line x1="20" y1="120" x2="480" y2="120" class="chart-grid-line"></line>
+
+              <!-- Filled Area -->
+              <path [attr.d]="trendAreaPath" fill="url(#attendanceGradient)" *ngIf="trendAreaPath"></path>
+
+              <!-- Trend Stroke Line -->
+              <path [attr.d]="trendSvgPath" class="trend-line" *ngIf="trendSvgPath"></path>
+
+              <!-- Interactive Data Points -->
+              <g *ngFor="let pt of trendPoints">
+                <circle
+                  [attr.cx]="pt.x"
+                  [attr.cy]="pt.y"
+                  r="5"
+                  class="trend-point"
+                  [class.active-pt]="hoveredTrendPoint === pt"
+                  (mouseenter)="hoveredTrendPoint = pt"
+                  (mouseleave)="hoveredTrendPoint = null">
+                </circle>
+              </g>
+            </svg>
+
+            <!-- Floating Hover Tooltip -->
+            <div 
+              class="chart-tooltip" 
+              *ngIf="hoveredTrendPoint" 
+              [style.left.px]="hoveredTrendPoint.x"
+              [style.top.px]="hoveredTrendPoint.y - 45">
+              <span class="tt-date">{{ hoveredTrendPoint.date }}</span>
+              <span class="tt-rate">{{ hoveredTrendPoint.rate }}%</span>
+            </div>
+          </div>
+
+          <!-- Bottom Dates Timeline -->
+          <div class="trend-x-axis">
+            <span *ngFor="let pt of trendPoints; let idx = index" class="axis-label">
+              {{ pt.dayLabel }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="quick-actions-section" *ngIf="canManage()">
+    <h3 class="section-title"><i class="bi bi-lightning-fill"></i> Quick Actions</h3>
+    <div class="actions-grid">
+      <a routerLink="/manager" class="action-card action-manager" style="border-left: 4px solid #3b82f6;">
+        <div class="action-icon" style="background: #eff6ff; color: #2563eb;"><i class="bi bi-briefcase-fill"></i></div>
+        <div class="action-text">
+          <div class="action-title">Manager Portal</div>
+          <div class="action-desc">Manage your group employees</div>
+        </div>
+        <i class="bi bi-arrow-right action-arrow"></i>
+      </a>
+      <a routerLink="/employees/new" class="action-card action-add" *ngIf="authService.canManageEmployees()">
+        <div class="action-icon"><i class="bi bi-person-plus-fill"></i></div>
+        <div class="action-text">
+          <div class="action-title">Add Employee</div>
+          <div class="action-desc">Register a new employee</div>
+        </div>
+        <i class="bi bi-arrow-right action-arrow"></i>
+      </a>
+      <a routerLink="/attendance" class="action-card action-view">
+        <div class="action-icon"><i class="bi bi-clock-history"></i></div>
+        <div class="action-text">
+          <div class="action-title">Attendance Roster</div>
+          <div class="action-desc">Check daily clock-in logs</div>
+        </div>
+        <i class="bi bi-arrow-right action-arrow"></i>
+      </a>
+      <a routerLink="/leaves" class="action-card action-dept">
+        <div class="action-icon"><i class="bi bi-calendar2-check-fill"></i></div>
+        <div class="action-text">
+          <div class="action-title">Leave Approvals</div>
+          <div class="action-desc">Review staff time-off requests</div>
+        </div>
+        <i class="bi bi-arrow-right action-arrow"></i>
+      </a>
+      <a routerLink="/my-profile" class="action-card action-profile">
+        <div class="action-icon"><i class="bi bi-person-circle"></i></div>
+        <div class="action-text">
+          <div class="action-title">My Profile</div>
+          <div class="action-desc">View your profile</div>
+        </div>
+        <i class="bi bi-arrow-right action-arrow"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- Welcome Card for Employees -->
+  <div class="welcome-card" *ngIf="!canManage()">
+    <div class="welcome-icon"><i class="bi bi-person-badge-fill"></i></div>
+    <div class="welcome-content">
+      <h3>Welcome to EMS Portal!</h3>
+      <p>Log your daily attendance, apply for time-off, and manage your personal employee profile seamlessly.</p>
+      <div class="welcome-btn-group">
+        <a routerLink="/attendance" class="btn-primary"><i class="bi bi-clock-history"></i> Clock In / Out</a>
+        <a routerLink="/leaves" class="btn-secondary-welcome"><i class="bi bi-calendar-plus"></i> Apply Leave</a>
+      </div>
+    </div>
+  </div>
+</div>

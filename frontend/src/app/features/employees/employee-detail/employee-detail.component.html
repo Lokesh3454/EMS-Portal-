@@ -1,0 +1,129 @@
+<div class="page-container">
+  <!-- Top Navigation / Actions -->
+  <div class="page-header">
+    <button class="btn-back" (click)="goBack()">
+      <i class="bi bi-arrow-left"></i>
+      <span>Back to Directory</span>
+    </button>
+    <button class="btn-edit" (click)="edit()" *ngIf="employee && authService.canManageEmployees()">
+      <i class="bi bi-pencil-square"></i>
+      <span>Edit Profile</span>
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading">
+    <div class="spinner-large"></div>
+    <p>Loading employee profile...</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="alert-box alert-danger" *ngIf="!loading && errorMessage">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <!-- Employee Profile -->
+  <div class="profile-container" *ngIf="!loading && employee">
+    <!-- Hero Profile Card -->
+    <div class="profile-hero-card">
+      <div class="hero-cover"></div>
+      <div class="hero-body">
+        <div class="hero-avatar">
+          {{ getInitials() }}
+        </div>
+        <div class="hero-meta">
+          <div class="hero-title-row">
+            <h1 class="hero-name">{{ employee.firstName }} {{ employee.lastName }}</h1>
+            <span class="status-badge" [ngClass]="employee.status === 'ACTIVE' ? 'badge-active' : 'badge-inactive'">
+              <span class="status-dot"></span>
+              {{ employee.status }}
+            </span>
+          </div>
+          <p class="hero-designation">{{ employee.designation || 'Team Member' }}</p>
+          <div class="hero-chips">
+            <span class="chip chip-id">
+              <i class="bi bi-person-badge"></i> {{ employee.empId }}
+            </span>
+            <span class="chip chip-dept" *ngIf="employee.departmentName">
+              <i class="bi bi-building"></i> {{ employee.departmentName }}
+            </span>
+            <span class="chip chip-date" *ngIf="employee.hireDate">
+              <i class="bi bi-calendar-event"></i> Joined {{ employee.hireDate | date:'mediumDate' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Details Grid -->
+    <div class="details-grid">
+      <!-- Contact & Personal Details Card -->
+      <div class="info-card">
+        <h3 class="card-title">
+          <i class="bi bi-person-lines-fill"></i> Personal Information
+        </h3>
+        <div class="info-list">
+          <div class="info-item">
+            <span class="info-label">Full Name</span>
+            <span class="info-value">{{ employee.firstName }} {{ employee.lastName }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Email Address</span>
+            <span class="info-value">
+              <a [href]="'mailto:' + employee.email" class="value-link">
+                <i class="bi bi-envelope"></i> {{ employee.email }}
+              </a>
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Phone Number</span>
+            <span class="info-value">
+              <a *ngIf="employee.phone" [href]="'tel:' + employee.phone" class="value-link">
+                <i class="bi bi-telephone"></i> {{ employee.phone }}
+              </a>
+              <span *ngIf="!employee.phone" class="text-muted">Not specified</span>
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Mailing Address</span>
+            <span class="info-value">{{ employee.address || 'Not specified' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Employment & Org Card -->
+      <div class="info-card">
+        <h3 class="card-title">
+          <i class="bi bi-briefcase-fill"></i> Employment Details
+        </h3>
+        <div class="info-list">
+          <div class="info-item">
+            <span class="info-label">Employee ID</span>
+            <span class="info-value font-mono">{{ employee.empId }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Department</span>
+            <span class="info-value">
+              <span class="dept-tag">{{ employee.departmentName || 'Not Assigned' }}</span>
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Designation / Role</span>
+            <span class="info-value">{{ employee.designation }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Hire Date</span>
+            <span class="info-value">{{ (employee.hireDate | date:'longDate') || '—' }}</span>
+          </div>
+          <div class="info-item" *ngIf="authService.canManageEmployees()">
+            <span class="info-label">Compensation</span>
+            <span class="info-value salary-highlight">
+              {{ employee.salary ? (employee.salary | currency:'USD':'symbol':'1.0-0') + ' / year' : 'Not specified' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

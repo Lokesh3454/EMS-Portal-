@@ -1,0 +1,141 @@
+<div class="page-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="bi bi-people-fill"></i> Employee Directory</h1>
+      <p class="page-subtitle">Manage and view all employees in your organization</p>
+    </div>
+    <a routerLink="/employees/new" class="btn-add" *ngIf="canManage()">
+      <i class="bi bi-person-plus-fill"></i> Add Employee
+    </a>
+  </div>
+
+  <!-- Filters Bar -->
+  <div class="filters-card">
+    <div class="filter-search">
+      <i class="bi bi-search search-icon"></i>
+      <input type="text" [(ngModel)]="filters.search" (input)="onSearch()" placeholder="Search by name, email, ID..." class="search-input"/>
+    </div>
+    <div class="filter-controls">
+      <select [(ngModel)]="filters.departmentId" (change)="onSearch()" class="filter-select">
+        <option value="">All Departments</option>
+        <option *ngFor="let dept of departments" [value]="dept.id">{{ dept.name }}</option>
+      </select>
+      <select [(ngModel)]="filters.status" (change)="onSearch()" class="filter-select">
+        <option value="">All Status</option>
+        <option value="ACTIVE">Active</option>
+        <option value="INACTIVE">Inactive</option>
+      </select>
+      <select [(ngModel)]="filters.size" (change)="onPageSizeChange()" class="filter-select size-select">
+        <option [value]="10">10 per page</option>
+        <option [value]="25">25 per page</option>
+        <option [value]="50">50 per page</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="result-info" *ngIf="!loading">
+    <span>Showing <strong>{{ employees.length }}</strong> of <strong>{{ totalElements }}</strong> employees</span>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-state" *ngIf="loading">
+    <div class="spinner-large"></div>
+    <p>Loading employees...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!loading && employees.length === 0">
+    <div class="empty-icon"><i class="bi bi-people"></i></div>
+    <h3>No employees found</h3>
+    <p>Try adjusting your search or filters</p>
+    <a routerLink="/employees/new" class="btn-add" *ngIf="canManage()">
+      <i class="bi bi-person-plus-fill"></i> Add First Employee
+    </a>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card" *ngIf="!loading && employees.length > 0">
+    <div class="table-responsive">
+      <table class="emp-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Employee ID</th>
+            <th>Department</th>
+            <th>Designation</th>
+            <th>Contact</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let emp of employees" class="table-row">
+            <td>
+              <div class="emp-info">
+                <div class="emp-avatar">{{ getInitials(emp) }}</div>
+                <div>
+                  <div class="emp-name">{{ emp.firstName }} {{ emp.lastName }}</div>
+                  <div class="emp-email">{{ emp.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="emp-id-badge">{{ emp.empId }}</span></td>
+            <td><span class="dept-badge">{{ emp.departmentName || '—' }}</span></td>
+            <td class="designation">{{ emp.designation || '—' }}</td>
+            <td class="phone">{{ emp.phone || '—' }}</td>
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(emp.status!)">
+                <span class="status-dot"></span>
+                {{ emp.status }}
+              </span>
+            </td>
+            <td>
+              <div class="action-btns">
+                <button class="btn-icon btn-view" (click)="viewEmployee(emp.id!)" title="View">
+                  <i class="bi bi-eye-fill"></i>
+                </button>
+                <button class="btn-icon btn-edit" (click)="editEmployee(emp.id!)" title="Edit" *ngIf="canManage()">
+                  <i class="bi bi-pencil-fill"></i>
+                </button>
+                <button class="btn-icon btn-delete" (click)="confirmDelete(emp)" title="Deactivate" *ngIf="canManage()">
+                  <i class="bi bi-trash-fill"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-bar" *ngIf="totalPages > 1">
+      <button class="page-btn" (click)="onPageChange(currentPage - 1)" [disabled]="currentPage === 0">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <button *ngFor="let p of pages" class="page-btn" [class.active]="p === currentPage" (click)="onPageChange(p)">
+        {{ p + 1 }}
+      </button>
+      <button class="page-btn" (click)="onPageChange(currentPage + 1)" [disabled]="currentPage === totalPages - 1">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" *ngIf="showDeleteModal" (click)="cancelDelete()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+    <h3>Deactivate Employee?</h3>
+    <p>Are you sure you want to deactivate <strong>{{ employeeToDelete?.firstName }} {{ employeeToDelete?.lastName }}</strong>? Their data will be preserved but they will be marked as inactive.</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" (click)="cancelDelete()">Cancel</button>
+      <button class="btn-confirm" (click)="deleteEmployee()" [disabled]="deleteLoading">
+        <span *ngIf="!deleteLoading"><i class="bi bi-trash-fill"></i> Deactivate</span>
+        <span *ngIf="deleteLoading"><span class="spinner-sm"></span> Processing...</span>
+      </button>
+    </div>
+  </div>
+</div>

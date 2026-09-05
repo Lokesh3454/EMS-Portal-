@@ -1,0 +1,56 @@
+<aside class="sidebar" [class.collapsed]="isCollapsed">
+  <!-- Brand -->
+  <div class="sidebar-brand">
+    <div class="brand-logo"><i class="bi bi-people-fill"></i></div>
+    <div class="brand-text" *ngIf="!isCollapsed">
+      <span class="brand-name">EMS Portal</span>
+      <span class="brand-sub">Management System</span>
+    </div>
+    <button class="collapse-btn" (click)="toggleSidebar()">
+      <i class="bi" [ngClass]="isCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
+    </button>
+  </div>
+
+  <!-- User Info -->
+  <div class="sidebar-user" *ngIf="!isCollapsed">
+    <div class="user-avatar">
+      <span>{{ user?.fullName?.charAt(0)?.toUpperCase() || 'A' }}</span>
+    </div>
+    <div class="user-info">
+      <span class="user-name">{{ user?.fullName || 'Admin' }}</span>
+      <span class="user-role">{{ getRoleLabel(user?.role) }}</span>
+    </div>
+    <button class="user-quick-logout" (click)="logout()" title="Sign Out">
+      <i class="bi bi-box-arrow-right"></i>
+    </button>
+  </div>
+  <div class="sidebar-user-mini" *ngIf="isCollapsed">
+    <div class="user-avatar-mini">{{ user?.fullName?.charAt(0)?.toUpperCase() || 'A' }}</div>
+  </div>
+
+  <!-- Divider -->
+  <div class="sidebar-divider"></div>
+
+  <!-- Navigation -->
+  <nav class="sidebar-nav">
+    <span class="nav-label" *ngIf="!isCollapsed">NAVIGATION</span>
+    <a *ngFor="let item of visibleMenuItems"
+       [routerLink]="item.route"
+       class="nav-item"
+       [class.active]="isActive(item.route)"
+       [title]="isCollapsed ? item.label : ''">
+      <i class="bi {{ item.icon }} nav-icon"></i>
+      <span class="nav-text" *ngIf="!isCollapsed">{{ item.label }}</span>
+      <span class="badge-count" *ngIf="!isCollapsed && item.badge">{{ item.badge }}</span>
+      <span class="active-indicator" *ngIf="isActive(item.route)"></span>
+    </a>
+  </nav>
+
+  <!-- Logout Footer (Pinned permanently at bottom) -->
+  <div class="sidebar-footer">
+    <button class="logout-btn" (click)="logout()" [title]="isCollapsed ? 'Sign Out / Logout' : ''">
+      <i class="bi bi-box-arrow-left logout-icon"></i>
+      <span class="logout-text" *ngIf="!isCollapsed">Logout</span>
+    </button>
+  </div>
+</aside>

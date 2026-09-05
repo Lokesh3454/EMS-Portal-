@@ -1,0 +1,489 @@
+<div class="leaves-page">
+  <!-- Top Header Bar -->
+  <div class="page-header-card">
+    <div class="header-info">
+      <div class="badge-pill">
+        <i class="bi bi-calendar2-check-fill"></i>
+        <span>Time-Off Management Suite</span>
+      </div>
+      <h2>Leave Management</h2>
+      <p>Submit leave applications, track annual quota balances, and review departmental approvals.</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-export" (click)="exportLeavesCsv()" title="Export leave records to CSV">
+        <i class="bi bi-file-earmark-arrow-down-fill"></i>
+        <span>Export CSV</span>
+      </button>
+      <button class="btn-primary" (click)="openApplyModal()">
+        <i class="bi bi-plus-circle-fill"></i>
+        <span>Apply for Leave</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Interactive Annual Leave Quota Balances (Clickable with Respective Features) -->
+  <div class="balances-grid" *ngIf="balance">
+    <!-- CL: Casual Leave Card -->
+    <div 
+      class="balance-card casual clickable-card" 
+      [class.active-card]="selectedCardCategory === 'CASUAL'"
+      (click)="selectCategory('CASUAL')"
+      title="Click to view Casual Leave policy, usage breakdown, and filter history">
+      <div class="card-action-chip" [class.active]="selectedCardCategory === 'CASUAL'">
+        <i class="bi" [ngClass]="selectedCardCategory === 'CASUAL' ? 'bi-check2-circle' : 'bi-hand-index-thumb'"></i>
+        <span>{{ selectedCardCategory === 'CASUAL' ? 'Filter Active' : 'Click to View' }}</span>
+      </div>
+      <div class="card-inner">
+        <div class="bal-icon"><i class="bi bi-umbrella-fill"></i></div>
+        <div class="bal-content">
+          <span class="bal-count">{{ balance.casualLeavesRemaining }}</span>
+          <span class="bal-type">Casual Leave (CL)</span>
+          <span class="bal-sub">12 days quota · {{ getCategoryUsed('CASUAL') }} used</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SL: Sick Leave Card -->
+    <div 
+      class="balance-card sick clickable-card" 
+      [class.active-card]="selectedCardCategory === 'SICK'"
+      (click)="selectCategory('SICK')"
+      title="Click to view Sick Leave policy, usage breakdown, and filter history">
+      <div class="card-action-chip" [class.active]="selectedCardCategory === 'SICK'">
+        <i class="bi" [ngClass]="selectedCardCategory === 'SICK' ? 'bi-check2-circle' : 'bi-hand-index-thumb'"></i>
+        <span>{{ selectedCardCategory === 'SICK' ? 'Filter Active' : 'Click to View' }}</span>
+      </div>
+      <div class="card-inner">
+        <div class="bal-icon"><i class="bi bi-heart-pulse-fill"></i></div>
+        <div class="bal-content">
+          <span class="bal-count">{{ balance.sickLeavesRemaining }}</span>
+          <span class="bal-type">Sick Leave (SL)</span>
+          <span class="bal-sub">10 days quota · {{ getCategoryUsed('SICK') }} used</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- EL: Earned Leave Card -->
+    <div 
+      class="balance-card earned clickable-card" 
+      [class.active-card]="selectedCardCategory === 'EARNED'"
+      (click)="selectCategory('EARNED')"
+      title="Click to view Earned Leave policy, usage breakdown, and filter history">
+      <div class="card-action-chip" [class.active]="selectedCardCategory === 'EARNED'">
+        <i class="bi" [ngClass]="selectedCardCategory === 'EARNED' ? 'bi-check2-circle' : 'bi-hand-index-thumb'"></i>
+        <span>{{ selectedCardCategory === 'EARNED' ? 'Filter Active' : 'Click to View' }}</span>
+      </div>
+      <div class="card-inner">
+        <div class="bal-icon"><i class="bi bi-award-fill"></i></div>
+        <div class="bal-content">
+          <span class="bal-count">{{ balance.earnedLeavesRemaining }}</span>
+          <span class="bal-type">Earned Leave (EL)</span>
+          <span class="bal-sub">15 days quota · {{ getCategoryUsed('EARNED') }} used</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total Available Card -->
+    <div 
+      class="balance-card total clickable-card" 
+      [class.active-card]="selectedCardCategory === 'ALL'"
+      (click)="selectCategory('ALL')"
+      title="Click to view overall leave quota overview and clear filters">
+      <div class="card-action-chip" [class.active]="selectedCardCategory === 'ALL'">
+        <i class="bi" [ngClass]="selectedCardCategory === 'ALL' ? 'bi-check2-circle' : 'bi-hand-index-thumb'"></i>
+        <span>{{ selectedCardCategory === 'ALL' ? 'All Selected' : 'Show All' }}</span>
+      </div>
+      <div class="card-inner">
+        <div class="bal-icon"><i class="bi bi-pie-chart-fill"></i></div>
+        <div class="bal-content">
+          <span class="bal-count">{{ balance.totalRemaining }}</span>
+          <span class="bal-type">Total Available</span>
+          <span class="bal-sub">37 days annual · {{ getCategoryUsed('ALL') }} used</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Category Insight Drawer (Responds to Card Click) -->
+  <div class="category-detail-panel" *ngIf="balance" [ngClass]="selectedCardCategory.toLowerCase()">
+    <div class="panel-left">
+      <div class="panel-icon-wrap">
+        <i class="bi" [ngClass]="getCategoryIcon(selectedCardCategory)"></i>
+      </div>
+      <div class="panel-info">
+        <div class="panel-tag">
+          <span class="pulse-dot"></span>
+          <span>{{ getCategoryTag(selectedCardCategory) }}</span>
+        </div>
+        <h4>{{ getCategoryTitle(selectedCardCategory) }}</h4>
+        <p class="panel-desc">{{ getCategoryDescription(selectedCardCategory) }}</p>
+        <div class="panel-policy">
+          <i class="bi bi-shield-check"></i>
+          <span><strong>Policy & Guidelines:</strong> {{ getCategoryPolicy(selectedCardCategory) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-right">
+      <div class="mini-stats-group">
+        <div class="mini-stat">
+          <span class="m-val">{{ getCategoryAllocated(selectedCardCategory) }}</span>
+          <span class="m-lbl">Annual Limit</span>
+        </div>
+        <div class="mini-stat">
+          <span class="m-val text-amber">{{ getCategoryUsed(selectedCardCategory) }}</span>
+          <span class="m-lbl">Days Used</span>
+        </div>
+        <div class="mini-stat">
+          <span class="m-val text-success">{{ getCategoryRemaining(selectedCardCategory) }}</span>
+          <span class="m-lbl">Days Remaining</span>
+        </div>
+      </div>
+
+      <div class="panel-actions">
+        <button 
+          class="btn-apply-category" 
+          (click)="applyForCategory(selectedCardCategory === 'ALL' ? 'CASUAL' : selectedCardCategory)">
+          <i class="bi bi-calendar-plus-fill"></i>
+          <span>Apply for {{ selectedCardCategory === 'ALL' ? 'Leave' : selectedCardCategory }}</span>
+        </button>
+        <button 
+          class="btn-reset-filter" 
+          *ngIf="selectedCardCategory !== 'ALL'"
+          (click)="selectCategory('ALL')">
+          <i class="bi bi-x-circle"></i>
+          <span>Clear Filter</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs (For Admin/HR: Shows Pending Approvals + My Leaves) -->
+  <div class="tabs-nav-bar" *ngIf="isAdmin">
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'pending-approvals'"
+      (click)="activeTab = 'pending-approvals'">
+      <i class="bi bi-inbox-fill"></i>
+      <span>Pending Approvals</span>
+      <span class="tab-badge" *ngIf="pendingRequests.length > 0">{{ pendingRequests.length }}</span>
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'all-leaves'"
+      (click)="activeTab = 'all-leaves'">
+      <i class="bi bi-people-fill"></i>
+      <span>All Employee Leaves</span>
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'my-leaves'"
+      (click)="activeTab = 'my-leaves'">
+      <i class="bi bi-person-fill"></i>
+      <span>My Leave History</span>
+    </button>
+  </div>
+
+  <!-- Active Filter Notification Bar -->
+  <div class="active-filter-bar" *ngIf="selectedCardCategory !== 'ALL'">
+    <div class="filter-pill-active">
+      <i class="bi bi-funnel-fill"></i>
+      <span>Filtered by: <strong>{{ getCategoryTitle(selectedCardCategory) }}</strong></span>
+    </div>
+    <button class="clear-filter-btn" (click)="selectCategory('ALL')">
+      <i class="bi bi-x-lg"></i> Show All Types
+    </button>
+  </div>
+
+  <!-- TAB 1: Pending Approvals (Admin Inbox) -->
+  <div class="table-card" *ngIf="isAdmin && activeTab === 'pending-approvals'">
+    <div class="card-header">
+      <div class="card-title">
+        <i class="bi bi-hourglass-top text-amber"></i>
+        <span>Pending Leave Requests Awaiting Review</span>
+      </div>
+      <span class="count-tag">{{ filteredPendingRequests.length }} request{{ filteredPendingRequests.length === 1 ? '' : 's' }}</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Department</th>
+            <th>Leave Type</th>
+            <th>Duration</th>
+            <th>Reason</th>
+            <th>Applied Date</th>
+            <th class="text-right">Decision Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let req of filteredPendingRequests">
+            <td>
+              <div class="emp-cell">
+                <div class="emp-avatar">{{ req.employeeName.charAt(0) }}</div>
+                <div>
+                  <span class="emp-name">{{ req.employeeName }}</span>
+                  <span class="emp-code">{{ req.employeeCode }}</span>
+                </div>
+              </div>
+            </td>
+            <td><span class="dept-badge">{{ req.departmentName }}</span></td>
+            <td>
+              <span class="type-pill">
+                <i class="bi" [ngClass]="getLeaveTypeIcon(req.leaveType)"></i>
+                {{ req.leaveType }}
+              </span>
+            </td>
+            <td>
+              <strong>{{ req.startDate }} – {{ req.endDate }}</strong>
+              <div class="days-count">({{ req.totalDays }} day{{ req.totalDays > 1 ? 's' : '' }})</div>
+            </td>
+            <td class="reason-cell" [title]="req.reason">{{ req.reason }}</td>
+            <td>{{ req.appliedAt | date:'mediumDate' }}</td>
+            <td class="text-right">
+              <div class="action-btn-group">
+                <button class="btn-sm approve" (click)="openReviewModal(req, 'APPROVED')">
+                  <i class="bi bi-check-lg"></i> Approve
+                </button>
+                <button class="btn-sm reject" (click)="openReviewModal(req, 'REJECTED')">
+                  <i class="bi bi-x-lg"></i> Reject
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredPendingRequests.length === 0">
+            <td colspan="7" class="empty-state">
+              <i class="bi bi-check2-all text-success"></i>
+              <p *ngIf="selectedCardCategory === 'ALL'">Great job! No pending leave requests to review.</p>
+              <p *ngIf="selectedCardCategory !== 'ALL'">No pending <strong>{{ selectedCardCategory }}</strong> requests found.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 2: All Company Leaves (Admin View) -->
+  <div class="table-card" *ngIf="isAdmin && activeTab === 'all-leaves'">
+    <div class="card-header">
+      <div class="card-title">
+        <i class="bi bi-journal-text text-primary"></i>
+        <span>Organization-Wide Leave History</span>
+      </div>
+      <span class="count-tag">{{ filteredAllRequests.length }} records</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Type</th>
+            <th>Duration</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Reviewed By</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let req of filteredAllRequests">
+            <td>
+              <span class="emp-name">{{ req.employeeName }}</span>
+              <span class="emp-code">{{ req.departmentName }}</span>
+            </td>
+            <td>
+              <span class="type-pill">
+                <i class="bi" [ngClass]="getLeaveTypeIcon(req.leaveType)"></i>
+                {{ req.leaveType }}
+              </span>
+            </td>
+            <td>
+              <strong>{{ req.startDate }} – {{ req.endDate }}</strong>
+              <div class="days-count">({{ req.totalDays }} day{{ req.totalDays > 1 ? 's' : '' }})</div>
+            </td>
+            <td class="reason-cell" [title]="req.reason">{{ req.reason }}</td>
+            <td>
+              <span class="badge" [ngClass]="getStatusClass(req.status)">{{ req.status }}</span>
+            </td>
+            <td>
+              <span *ngIf="req.reviewedBy">{{ req.reviewedBy }}</span>
+              <span *ngIf="!req.reviewedBy" class="text-muted">—</span>
+              <div *ngIf="req.reviewRemarks" class="remarks-text">"{{ req.reviewRemarks }}"</div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredAllRequests.length === 0">
+            <td colspan="6" class="empty-state">
+              <i class="bi bi-folder2-open"></i>
+              <p>No leave records found matching current selection.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 3: My Leaves (Default for Employee) -->
+  <div class="table-card" *ngIf="!isAdmin || activeTab === 'my-leaves'">
+    <div class="card-header">
+      <div class="card-title">
+        <i class="bi bi-person-lines-fill text-indigo"></i>
+        <span>My Leave Applications</span>
+      </div>
+      <span class="count-tag">{{ filteredMyRequests.length }} applications</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Leave Type</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Total Days</th>
+            <th>Reason</th>
+            <th>Submitted On</th>
+            <th>Status</th>
+            <th>Reviewer Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let req of filteredMyRequests">
+            <td>
+              <span class="type-pill">
+                <i class="bi" [ngClass]="getLeaveTypeIcon(req.leaveType)"></i>
+                {{ req.leaveType }}
+              </span>
+            </td>
+            <td><strong>{{ req.startDate }}</strong></td>
+            <td><strong>{{ req.endDate }}</strong></td>
+            <td>{{ req.totalDays }} day{{ req.totalDays > 1 ? 's' : '' }}</td>
+            <td class="reason-cell" [title]="req.reason">{{ req.reason }}</td>
+            <td>{{ req.appliedAt | date:'mediumDate' }}</td>
+            <td>
+              <span class="badge" [ngClass]="getStatusClass(req.status)">{{ req.status }}</span>
+            </td>
+            <td>
+              <span *ngIf="req.reviewRemarks" class="remarks-text">"{{ req.reviewRemarks }}"</span>
+              <span *ngIf="!req.reviewRemarks" class="text-muted">—</span>
+            </td>
+          </tr>
+          <tr *ngIf="filteredMyRequests.length === 0">
+            <td colspan="8" class="empty-state">
+              <i class="bi bi-calendar-check"></i>
+              <p *ngIf="selectedCardCategory === 'ALL'">You haven't submitted any leave requests yet.</p>
+              <p *ngIf="selectedCardCategory !== 'ALL'">No <strong>{{ selectedCardCategory }}</strong> applications submitted yet.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Apply for Leave Modal -->
+  <div class="modal-backdrop" *ngIf="showApplyModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="bi bi-calendar-plus-fill"></i>
+          <h3>Apply for Time-Off</h3>
+        </div>
+        <button class="close-btn" (click)="closeApplyModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="alert alert-error" *ngIf="applyError">
+          <i class="bi bi-exclamation-circle-fill"></i> {{ applyError }}
+        </div>
+        <div class="alert alert-success" *ngIf="applySuccess">
+          <i class="bi bi-check-circle-fill"></i> {{ applySuccess }}
+        </div>
+
+        <div class="form-group">
+          <label>Leave Category</label>
+          <select [(ngModel)]="applyForm.leaveType">
+            <option value="CASUAL">Casual Leave (CL) - Personal work</option>
+            <option value="SICK">Sick Leave (SL) - Health / Medical</option>
+            <option value="EARNED">Earned / Paid Leave (EL) - Vacation</option>
+            <option value="WFH">Work From Home (WFH) - Remote day</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" [(ngModel)]="applyForm.startDate" (change)="onDatesChange()" />
+          </div>
+          <div class="form-group">
+            <label>End Date</label>
+            <input type="date" [(ngModel)]="applyForm.endDate" (change)="onDatesChange()" />
+          </div>
+        </div>
+
+        <!-- Calculated Days Preview -->
+        <div class="days-summary-pill" *ngIf="calculatedDays > 0">
+          <i class="bi bi-clock-history"></i>
+          <span>Total Duration: <strong>{{ calculatedDays }} day{{ calculatedDays > 1 ? 's' : '' }}</strong></span>
+        </div>
+
+        <div class="form-group">
+          <label>Reason for Leave</label>
+          <textarea 
+            rows="3" 
+            [(ngModel)]="applyForm.reason" 
+            placeholder="Explain why you are requesting time off...">
+          </textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeApplyModal()">Cancel</button>
+        <button class="btn-primary" (click)="submitApplication()" [disabled]="submittingLeave">
+          <i class="bi bi-send-fill"></i>
+          <span *ngIf="!submittingLeave">Submit Request</span>
+          <span *ngIf="submittingLeave">Submitting...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review Leave Modal (Admin Decision) -->
+  <div class="modal-backdrop" *ngIf="showReviewModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="bi" [ngClass]="reviewActionType === 'APPROVED' ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger'"></i>
+          <h3>{{ reviewActionType === 'APPROVED' ? 'Approve' : 'Reject' }} Leave Request</h3>
+        </div>
+        <button class="close-btn" (click)="closeReviewModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <div class="modal-body" *ngIf="selectedRequestForReview">
+        <p class="review-prompt">
+          You are about to mark <strong>{{ selectedRequestForReview.employeeName }}</strong>'s request for 
+          <strong>{{ selectedRequestForReview.totalDays }} day(s)</strong> of {{ selectedRequestForReview.leaveType }} as 
+          <strong [class.text-success]="reviewActionType === 'APPROVED'" [class.text-danger]="reviewActionType === 'REJECTED'">
+            {{ reviewActionType }}
+          </strong>.
+        </p>
+
+        <div class="form-group">
+          <label>Review Remarks / Feedback</label>
+          <textarea rows="3" [(ngModel)]="reviewRemarks" placeholder="Enter remarks (optional for approvals, recommended for rejections)..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeReviewModal()">Cancel</button>
+        <button 
+          class="btn-primary" 
+          [class.btn-danger]="reviewActionType === 'REJECTED'"
+          (click)="submitReview()" 
+          [disabled]="submittingReview">
+          <span>Confirm {{ reviewActionType }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

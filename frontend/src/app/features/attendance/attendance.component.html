@@ -1,0 +1,281 @@
+<div class="attendance-page">
+  <!-- Top Digital Clock Header Banner -->
+  <div class="clock-banner">
+    <div class="clock-info">
+      <div class="banner-pill">
+        <span class="live-dot"></span>
+        <span>Real-Time Attendance Synchronization</span>
+      </div>
+      <h2>Attendance & Time Management</h2>
+      <p class="banner-sub">Log daily work hours, track attendance compliance, and view monthly logs.</p>
+    </div>
+    <div class="digital-clock-display">
+      <div class="clock-time">{{ currentTime }}</div>
+      <div class="clock-date"><i class="bi bi-calendar3"></i> {{ currentDateStr }}</div>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div class="alert alert-success" *ngIf="clockSuccessMsg">
+    <i class="bi bi-check-circle-fill"></i>
+    <span>{{ clockSuccessMsg }}</span>
+  </div>
+  <div class="alert alert-error" *ngIf="clockErrorMsg">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>{{ clockErrorMsg }}</span>
+  </div>
+
+  <!-- Employee Daily Shift Action Center -->
+  <div class="shift-action-card">
+    <div class="shift-header">
+      <div class="shift-title-group">
+        <div class="shift-icon"><i class="bi bi-stopwatch-fill"></i></div>
+        <div>
+          <h3>Today's Work Shift</h3>
+          <p>Standard Office Hours: 09:30 AM – 06:30 PM</p>
+        </div>
+      </div>
+      <div class="shift-status-pill" [ngClass]="getStatusClass(todayRecord ? todayRecord.status : 'NOT_CLOCKED')">
+        <span class="pulse-ring" *ngIf="todayRecord && !todayRecord.clockOutTime"></span>
+        <span>{{ todayRecord ? (todayRecord.clockOutTime ? 'Shift Completed' : 'Currently Active (' + todayRecord.status + ')') : 'Not Clocked In' }}</span>
+      </div>
+    </div>
+
+    <div class="shift-body-grid">
+      <!-- Punch Time Logs -->
+      <div class="punch-box">
+        <span class="punch-label"><i class="bi bi-box-arrow-in-right"></i> Clock-In Time</span>
+        <span class="punch-val">{{ todayRecord?.clockInTime || '—' }}</span>
+        <span class="punch-sub" *ngIf="todayRecord">Recorded today</span>
+        <span class="punch-sub text-muted" *ngIf="!todayRecord">Pending entry</span>
+      </div>
+
+      <div class="punch-box">
+        <span class="punch-label"><i class="bi bi-hourglass-split"></i> Elapsed Time</span>
+        <span class="punch-val timer-val" [class.active-timer]="todayRecord && !todayRecord.clockOutTime">
+          {{ todayRecord?.clockOutTime ? (todayRecord ? formatHours(todayRecord.totalHours) : '—') : (todayRecord ? elapsedTimeStr : '00:00:00') }}
+        </span>
+        <span class="punch-sub">{{ todayRecord?.clockOutTime ? 'Total duration' : (todayRecord ? 'Running live...' : 'Not started') }}</span>
+      </div>
+
+      <div class="punch-box">
+        <span class="punch-label"><i class="bi bi-box-arrow-right"></i> Clock-Out Time</span>
+        <span class="punch-val">{{ todayRecord?.clockOutTime || '—' }}</span>
+        <span class="punch-sub">{{ todayRecord?.clockOutTime ? 'Shift ended' : (todayRecord ? 'Awaiting checkout' : 'Pending entry') }}</span>
+      </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="shift-action-bar">
+      <div class="notes-input-wrapper">
+        <i class="bi bi-chat-left-text"></i>
+        <input 
+          type="text" 
+          [(ngModel)]="clockNotes" 
+          placeholder="Add shift notes (e.g., Working on Project Apollo, Desk 4B, Remote)"
+          [disabled]="loadingClockAction || (todayRecord ? !!todayRecord.clockOutTime : false)"
+        />
+      </div>
+
+      <div class="action-buttons">
+        <!-- Clock In Button -->
+        <button 
+          class="btn-clock in" 
+          *ngIf="!todayRecord"
+          (click)="clockIn()" 
+          [disabled]="loadingClockAction">
+          <i class="bi bi-box-arrow-in-right"></i>
+          <span>Clock In Now</span>
+        </button>
+
+        <!-- Clock Out Button -->
+        <button 
+          class="btn-clock out" 
+          *ngIf="todayRecord && !todayRecord.clockOutTime"
+          (click)="clockOut()" 
+          [disabled]="loadingClockAction">
+          <i class="bi bi-box-arrow-right"></i>
+          <span>Clock Out & Complete Shift</span>
+        </button>
+
+        <!-- Completed Badge Button -->
+        <div class="shift-done-badge" *ngIf="todayRecord && todayRecord.clockOutTime">
+          <i class="bi bi-check2-circle"></i>
+          <span>Today's Shift Finished ({{ todayRecord ? formatHours(todayRecord.totalHours) : '—' }})</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Daily Company Roster & KPIs (Visible to Admin/HR/Manager) -->
+  <div class="admin-section" *ngIf="isAdmin">
+    <div class="section-title-bar">
+      <div class="section-title">
+        <i class="bi bi-buildings-fill text-primary"></i>
+        <div>
+          <h3>Organization Attendance Roster</h3>
+          <p>Real-time employee clock-in records and shift statuses</p>
+        </div>
+      </div>
+      <div class="date-filter-box">
+        <label><i class="bi bi-calendar-event"></i> Select Date:</label>
+        <input type="date" [(ngModel)]="adminSelectedDate" (change)="onDateChange()" />
+        <button class="btn-export" (click)="exportRosterCsv()" title="Download attendance roster as CSV">
+          <i class="bi bi-file-earmark-arrow-down-fill"></i> Export CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Admin KPI Cards -->
+    <div class="admin-kpi-grid" *ngIf="adminSummary">
+      <div class="kpi-card">
+        <div class="kpi-icon blue"><i class="bi bi-people-fill"></i></div>
+        <div class="kpi-text">
+          <span class="kpi-num">{{ adminSummary.totalEmployees }}</span>
+          <span class="kpi-label">Total Employees</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon green"><i class="bi bi-check-circle-fill"></i></div>
+        <div class="kpi-text">
+          <span class="kpi-num">{{ adminSummary.presentToday }}</span>
+          <span class="kpi-label">On-Time Present</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon amber"><i class="bi bi-clock-history"></i></div>
+        <div class="kpi-text">
+          <span class="kpi-num">{{ adminSummary.lateToday }}</span>
+          <span class="kpi-label">Late Arrivals</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon purple"><i class="bi bi-speedometer2"></i></div>
+        <div class="kpi-text">
+          <span class="kpi-num">{{ adminSummary.attendanceRate }}%</span>
+          <span class="kpi-label">Attendance Rate</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Roster Table Card -->
+    <div class="table-card">
+      <div class="table-header-filter">
+        <div class="search-input">
+          <i class="bi bi-search"></i>
+          <input type="text" [(ngModel)]="rosterSearch" placeholder="Search by name, ID, department, or status..." />
+        </div>
+        <div class="record-count">
+          Showing <strong>{{ filteredRoster.length }}</strong> of {{ companyRoster.length }} records
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Clock-In</th>
+              <th>Clock-Out</th>
+              <th>Hours Worked</th>
+              <th>Status</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let rec of filteredRoster">
+              <td>
+                <div class="emp-cell">
+                  <div class="emp-avatar">{{ rec.employeeName.charAt(0) }}</div>
+                  <div>
+                    <span class="emp-name">{{ rec.employeeName }}</span>
+                    <span class="emp-code">{{ rec.employeeCode }}</span>
+                  </div>
+                </div>
+              </td>
+              <td><span class="dept-badge">{{ rec.departmentName }}</span></td>
+              <td><strong>{{ rec.clockInTime }}</strong></td>
+              <td>{{ rec.clockOutTime || '—' }}</td>
+              <td>{{ formatHours(rec.totalHours) }}</td>
+              <td>
+                <span class="badge" [ngClass]="getStatusClass(rec.status)">{{ rec.status }}</span>
+              </td>
+              <td class="notes-col">{{ rec.notes || '—' }}</td>
+            </tr>
+            <tr *ngIf="filteredRoster.length === 0">
+              <td colspan="7" class="empty-state">
+                <i class="bi bi-calendar-x"></i>
+                <p>No attendance records found for this date.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Employee Personal Monthly History Section -->
+  <div class="monthly-section">
+    <div class="section-title-bar">
+      <div class="section-title">
+        <i class="bi bi-calendar-week-fill text-indigo"></i>
+        <div>
+          <h3>My Monthly Attendance Log</h3>
+          <p>View your past work shifts and recorded work hours</p>
+        </div>
+      </div>
+      <div class="month-selector">
+        <select [(ngModel)]="selectedMonth" (change)="loadMonthlyHistory()">
+          <option *ngFor="let m of months" [value]="m.value">{{ m.name }}</option>
+        </select>
+        <select [(ngModel)]="selectedYear" (change)="loadMonthlyHistory()">
+          <option [value]="2026">2026</option>
+          <option [value]="2025">2025</option>
+          <option [value]="2024">2024</option>
+        </select>
+        <button class="btn-export" (click)="exportMonthlyCsv()" title="Download monthly history as CSV">
+          <i class="bi bi-file-earmark-arrow-down-fill"></i> Export CSV
+        </button>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Clock-In</th>
+              <th>Clock-Out</th>
+              <th>Total Hours</th>
+              <th>Status</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let mRec of monthlyRecords">
+              <td><strong>{{ mRec.date }}</strong></td>
+              <td>{{ mRec.clockInTime }}</td>
+              <td>{{ mRec.clockOutTime || '—' }}</td>
+              <td><strong>{{ formatHours(mRec.totalHours) }}</strong></td>
+              <td>
+                <span class="badge" [ngClass]="getStatusClass(mRec.status)">{{ mRec.status }}</span>
+              </td>
+              <td>{{ mRec.notes || '—' }}</td>
+            </tr>
+            <tr *ngIf="monthlyRecords.length === 0">
+              <td colspan="6" class="empty-state">
+                <i class="bi bi-clock"></i>
+                <p>No attendance records logged for {{ months[selectedMonth - 1].name }} {{ selectedYear }}.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

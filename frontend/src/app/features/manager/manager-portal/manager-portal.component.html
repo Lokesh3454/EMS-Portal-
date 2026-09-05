@@ -1,0 +1,831 @@
+<div class="manager-portal-page">
+  <!-- Top Header & Group Banner -->
+  <div class="portal-header-card">
+    <div class="header-left">
+      <div class="dept-lead-pill">
+        <i class="bi bi-briefcase-fill"></i>
+        <span>Department Operations & Team Management</span>
+      </div>
+      <h2>{{ managedDepartment?.name || 'Assigned Division' }} Portal</h2>
+      <p>Group Manager: <strong>{{ currentManagerName }}</strong> · Direct oversight of department staff, shifts, and leave allocations</p>
+    </div>
+
+    <div class="header-right">
+      <!-- Group Switcher for Admins / HR -->
+      <div class="group-switcher-box" *ngIf="isAdminOrHr && allDepartments.length > 0">
+        <label><i class="bi bi-diagram-3-fill"></i> Switch Group:</label>
+        <select [(ngModel)]="selectedDeptId" (change)="onDepartmentSwitch()">
+          <option *ngFor="let d of allDepartments" [value]="d.id">{{ d.name }}</option>
+        </select>
+      </div>
+
+      <div class="manager-status-chip">
+        <span class="pulse-indicator"></span>
+        <span>Active Group Session</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Group KPI Grid -->
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-num">{{ totalTeamMembers }}</span>
+        <span class="kpi-label">Group Headcount</span>
+        <span class="kpi-sub">Total active staff in team</span>
+      </div>
+    </div>
+
+    <div class="kpi-card green">
+      <div class="kpi-icon"><i class="bi bi-person-check-fill"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-num">{{ presentToday }}</span>
+        <span class="kpi-label">On Duty Today</span>
+        <span class="kpi-sub">{{ teamAttendanceRate }}% attendance rate</span>
+      </div>
+    </div>
+
+    <div class="kpi-card amber">
+      <div class="kpi-icon"><i class="bi bi-calendar-x-fill"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-num">{{ onLeaveToday }}</span>
+        <span class="kpi-label">Out of Office / Leave</span>
+        <span class="kpi-sub">Approved time-off today</span>
+      </div>
+    </div>
+
+    <div class="kpi-card purple">
+      <div class="kpi-icon"><i class="bi bi-hourglass-split"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-num">{{ pendingLeavesCount }}</span>
+        <span class="kpi-label">Pending Approvals</span>
+        <span class="kpi-sub">Requires manager action</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs Bar -->
+  <div class="portal-nav-bar">
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'team-members'"
+      (click)="activeTab = 'team-members'">
+      <i class="bi bi-people"></i>
+      <span>Team Members & Data</span>
+      <span class="tab-chip">{{ totalTeamMembers }}</span>
+    </button>
+
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'team-attendance'"
+      (click)="activeTab = 'team-attendance'">
+      <i class="bi bi-clock-history"></i>
+      <span>Daily Attendance Roster</span>
+    </button>
+
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'team-leaves'"
+      (click)="activeTab = 'team-leaves'">
+      <i class="bi bi-calendar-check"></i>
+      <span>Team Leave Approvals</span>
+      <span class="tab-chip alert-chip" *ngIf="pendingLeavesCount > 0">{{ pendingLeavesCount }}</span>
+    </button>
+
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'team-appraisals'"
+      (click)="activeTab = 'team-appraisals'">
+      <i class="bi bi-award-fill"></i>
+      <span>Team Appraisals & PMS</span>
+      <span class="tab-chip">{{ teamReviews.length }}</span>
+    </button>
+
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'team-analytics'"
+      (click)="activeTab = 'team-analytics'">
+      <i class="bi bi-graph-up-arrow"></i>
+      <span>Group Analytics</span>
+    </button>
+  </div>
+
+  <!-- ==================== TAB 1: TEAM MEMBERS & DATA ==================== -->
+  <div class="tab-content" *ngIf="activeTab === 'team-members'">
+    <div class="content-card">
+      <div class="card-toolbar">
+        <div class="search-and-filter">
+          <div class="search-input">
+            <i class="bi bi-search"></i>
+            <input 
+              type="text" 
+              [(ngModel)]="searchMember" 
+              placeholder="Search team member by name, role, email..." />
+          </div>
+
+          <div class="status-select">
+            <select [(ngModel)]="statusFilter">
+              <option value="ALL">All Statuses</option>
+              <option value="ACTIVE">Active Only</option>
+              <option value="INACTIVE">Inactive Only</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-export" (click)="exportTeamRosterCsv()" title="Export Team Roster as CSV">
+            <i class="bi bi-file-earmark-arrow-down-fill"></i>
+            <span>Export CSV</span>
+          </button>
+          <button class="btn-primary" (click)="openAddModal()">
+            <i class="bi bi-person-plus-fill"></i>
+            <span>Add Team Member</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Members Table -->
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Designation</th>
+              <th>Contact</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Joined Date</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let emp of filteredTeamMembers">
+              <td>
+                <div class="emp-cell">
+                  <div class="avatar-box">{{ emp.firstName.charAt(0) }}</div>
+                  <div class="emp-info">
+                    <span class="emp-name">{{ emp.firstName }} {{ emp.lastName }}</span>
+                    <span class="emp-id">{{ emp.empId || 'EMP' }}</span>
+                  </div>
+                </div>
+              </td>
+              <td><span class="role-badge">{{ emp.designation || 'Specialist' }}</span></td>
+              <td>
+                <div class="contact-info">
+                  <span class="email-text"><i class="bi bi-envelope"></i> {{ emp.email }}</span>
+                  <span class="phone-text" *ngIf="emp.phone"><i class="bi bi-telephone"></i> {{ emp.phone }}</span>
+                </div>
+              </td>
+              <td><span class="type-pill">{{ emp.employmentType || 'FULL_TIME' }}</span></td>
+              <td>
+                <span class="status-badge" [ngClass]="emp.status === 'ACTIVE' ? 'status-active' : 'status-inactive'">
+                  {{ emp.status || 'ACTIVE' }}
+                </span>
+              </td>
+              <td><span class="date-text">{{ emp.dateOfJoining || 'N/A' }}</span></td>
+              <td class="text-right">
+                <div class="table-actions">
+                  <button class="action-btn edit" (click)="openEditModal(emp)" title="Edit Member Data">
+                    <i class="bi bi-pencil-fill"></i>
+                  </button>
+                  <button class="action-btn view" (click)="openSnapshot(emp)" title="View Member Profile">
+                    <i class="bi bi-eye-fill"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <tr *ngIf="filteredTeamMembers.length === 0">
+              <td colspan="7" class="empty-state">
+                <i class="bi bi-people"></i>
+                <p>No team members found matching your search.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 2: DAILY ATTENDANCE ROSTER ==================== -->
+  <div class="tab-content" *ngIf="activeTab === 'team-attendance'">
+    <div class="content-card">
+      <div class="card-toolbar">
+        <div class="date-filter-wrap">
+          <label><i class="bi bi-calendar-event"></i> Shift Date:</label>
+          <input type="date" [(ngModel)]="attendanceDate" (change)="loadGroupAttendance()" />
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-export" (click)="exportTeamAttendanceCsv()" title="Export Group Attendance CSV">
+            <i class="bi bi-file-earmark-arrow-down-fill"></i>
+            <span>Export CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Team Member</th>
+              <th>Clock-In</th>
+              <th>Clock-Out</th>
+              <th>Work Hours</th>
+              <th>Shift Status</th>
+              <th>Shift Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let rec of teamAttendance">
+              <td>
+                <div class="emp-cell">
+                  <div class="avatar-box green-avatar">{{ rec.employeeName.charAt(0) }}</div>
+                  <div>
+                    <span class="emp-name">{{ rec.employeeName }}</span>
+                    <span class="emp-id">{{ rec.employeeCode }}</span>
+                  </div>
+                </div>
+              </td>
+              <td><strong>{{ rec.clockInTime }}</strong></td>
+              <td>{{ rec.clockOutTime || '—' }}</td>
+              <td>{{ rec.totalHours ? rec.totalHours.toFixed(2) + ' hrs' : 'In Progress' }}</td>
+              <td>
+                <span class="status-badge" [ngClass]="rec.status === 'PRESENT' ? 'status-active' : (rec.status === 'LATE' ? 'status-late' : 'status-leave')">
+                  {{ rec.status }}
+                </span>
+              </td>
+              <td><span class="notes-text">{{ rec.notes || '—' }}</span></td>
+            </tr>
+
+            <tr *ngIf="teamAttendance.length === 0">
+              <td colspan="6" class="empty-state">
+                <i class="bi bi-clock-history"></i>
+                <p>No clock-in records logged for this group on {{ attendanceDate }}.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 3: TEAM LEAVE APPROVALS ==================== -->
+  <div class="tab-content" *ngIf="activeTab === 'team-leaves'">
+    <div class="content-card">
+      <div class="card-toolbar">
+        <div class="leave-filter-tabs">
+          <button 
+            class="filter-tab" 
+            [class.active]="leaveFilter === 'ALL'"
+            (click)="leaveFilter = 'ALL'">
+            All Requests ({{ teamLeaves.length }})
+          </button>
+          <button 
+            class="filter-tab" 
+            [class.active]="leaveFilter === 'PENDING'"
+            (click)="leaveFilter = 'PENDING'">
+            Pending ({{ pendingLeavesCount }})
+          </button>
+          <button 
+            class="filter-tab" 
+            [class.active]="leaveFilter === 'APPROVED'"
+            (click)="leaveFilter = 'APPROVED'">
+            Approved
+          </button>
+          <button 
+            class="filter-tab" 
+            [class.active]="leaveFilter === 'REJECTED'"
+            (click)="leaveFilter = 'REJECTED'">
+            Rejected
+          </button>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-export" (click)="exportTeamLeavesCsv()" title="Export Team Leaves CSV">
+            <i class="bi bi-file-earmark-arrow-down-fill"></i>
+            <span>Export CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Leave Type</th>
+              <th>Period</th>
+              <th>Days</th>
+              <th>Reason</th>
+              <th>Status</th>
+              <th>Manager Remarks</th>
+              <th class="text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let l of filteredTeamLeaves">
+              <td>
+                <div class="emp-cell">
+                  <div class="avatar-box purple-avatar">{{ l.employeeName.charAt(0) }}</div>
+                  <div>
+                    <span class="emp-name">{{ l.employeeName }}</span>
+                    <span class="emp-id">{{ l.employeeCode }}</span>
+                  </div>
+                </div>
+              </td>
+              <td><span class="leave-type-chip">{{ l.leaveType }}</span></td>
+              <td>{{ l.startDate }} to {{ l.endDate }}</td>
+              <td><strong>{{ l.totalDays }} day(s)</strong></td>
+              <td><span class="reason-text">{{ l.reason }}</span></td>
+              <td>
+                <span class="status-badge" [ngClass]="l.status === 'APPROVED' ? 'status-active' : (l.status === 'REJECTED' ? 'status-inactive' : 'status-late')">
+                  {{ l.status }}
+                </span>
+              </td>
+              <td><span class="notes-text">{{ l.reviewRemarks || '—' }}</span></td>
+              <td class="text-right">
+                <div class="approval-actions" *ngIf="l.status === 'PENDING'">
+                  <button class="btn-approve-sm" (click)="openReviewModal(l, 'APPROVED')" title="Approve Leave">
+                    <i class="bi bi-check-lg"></i> Approve
+                  </button>
+                  <button class="btn-reject-sm" (click)="openReviewModal(l, 'REJECTED')" title="Reject Leave">
+                    <i class="bi bi-x-lg"></i> Reject
+                  </button>
+                </div>
+                <span class="reviewed-tag" *ngIf="l.status !== 'PENDING'">
+                  <i class="bi bi-shield-check"></i> Reviewed
+                </span>
+              </td>
+            </tr>
+
+            <tr *ngIf="filteredTeamLeaves.length === 0">
+              <td colspan="8" class="empty-state">
+                <i class="bi bi-calendar-check"></i>
+                <p>No leave requests found for this filter.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 4: GROUP ANALYTICS ==================== -->
+  <div class="tab-content" *ngIf="activeTab === 'team-analytics'">
+    <div class="analytics-grid">
+      <!-- Role Breakdown Doughnut -->
+      <div class="chart-card">
+        <div class="cch-title">
+          <i class="bi bi-pie-chart-fill text-blue"></i>
+          <span>Team Role & Designation Breakdown</span>
+        </div>
+
+        <div class="donut-chart-container">
+          <div class="svg-donut-wrapper">
+            <svg viewBox="0 0 120 120" class="donut-svg">
+              <circle cx="60" cy="60" r="45" class="donut-base-ring"></circle>
+              <circle
+                *ngFor="let s of roleBreakdown"
+                cx="60"
+                cy="60"
+                r="45"
+                class="donut-segment"
+                [style.stroke]="s.color"
+                [style.stroke-dasharray]="s.dashArray"
+                [style.stroke-dashoffset]="s.dashOffset">
+              </circle>
+            </svg>
+            <div class="donut-center-info">
+              <span class="center-val">{{ totalTeamMembers }}</span>
+              <span class="center-lbl">Staff</span>
+            </div>
+          </div>
+
+          <div class="donut-legend-list">
+            <div *ngFor="let s of roleBreakdown" class="legend-row">
+              <div class="legend-color-dot" [style.background-color]="s.color"></div>
+              <span class="legend-name">{{ s.role }}</span>
+              <span class="legend-count">{{ s.count }}</span>
+              <span class="legend-pct">{{ s.pct }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attendance Adherence Metric -->
+      <div class="chart-card">
+        <div class="cch-title">
+          <i class="bi bi-speedometer2 text-emerald"></i>
+          <span>Department Performance Adherence</span>
+        </div>
+
+        <div class="performance-body">
+          <div class="metric-meter">
+            <div class="meter-val">{{ teamAttendanceRate }}%</div>
+            <div class="meter-bar-track">
+              <div class="meter-bar-fill" [style.width.%]="teamAttendanceRate"></div>
+            </div>
+            <span class="meter-desc">Rolling Attendance Adherence across {{ totalTeamMembers }} members</span>
+          </div>
+
+          <div class="perf-stats-row">
+            <div class="p-stat">
+              <span class="ps-val text-success">{{ presentToday }}</span>
+              <span class="ps-lbl">Active on Duty</span>
+            </div>
+            <div class="p-stat">
+              <span class="ps-val text-amber">{{ onLeaveToday }}</span>
+              <span class="ps-lbl">Scheduled Leave</span>
+            </div>
+            <div class="p-stat">
+              <span class="ps-val text-primary">100%</span>
+              <span class="ps-lbl">Group Integrity</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB: TEAM APPRAISALS & PMS ==================== -->
+  <div class="tab-pane" *ngIf="activeTab === 'team-appraisals'">
+    <div class="section-card">
+      <div class="card-toolbar">
+        <div class="toolbar-left">
+          <div class="sec-title">
+            <h3>Team Performance Appraisals & Reviews</h3>
+            <span class="sec-sub">Evaluate group members, review self-ratings, and recommend merit increments.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert-banner-manager" *ngIf="reviewSuccessMessage">
+        <i class="bi bi-check-circle-fill"></i>
+        <span>{{ reviewSuccessMessage }}</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="portal-table">
+          <thead>
+            <tr>
+              <th>Team Member</th>
+              <th>Self Rating</th>
+              <th>Manager Rating</th>
+              <th>Final Rating</th>
+              <th>Merit Increment</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of teamReviews">
+              <td>
+                <div class="member-cell">
+                  <div class="member-avatar">{{ r.employeeName.charAt(0) }}</div>
+                  <div class="member-meta">
+                    <span class="m-name">{{ r.employeeName }}</span>
+                    <span class="m-sub">{{ r.empId }} &bull; {{ r.designation }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge-score">{{ r.selfAverageScore || '3.0' }} / 5.0</span>
+              </td>
+              <td>
+                <span class="badge-score text-blue" *ngIf="r.mgrAverageScore">{{ r.mgrAverageScore }} / 5.0</span>
+                <span class="text-muted" *ngIf="!r.mgrAverageScore">—</span>
+              </td>
+              <td>
+                <span class="badge-gold" *ngIf="r.finalRating">{{ r.finalRating }} ★</span>
+                <span class="text-muted" *ngIf="!r.finalRating">Pending</span>
+              </td>
+              <td>
+                <span class="badge-inc" *ngIf="r.recommendedIncrement">+{{ r.recommendedIncrement }}%</span>
+                <span class="text-muted" *ngIf="!r.recommendedIncrement">—</span>
+              </td>
+              <td>
+                <span class="status-badge" [class.badge-approved]="r.status === 'COMPLETED'" [class.badge-pending]="r.status === 'SELF_SUBMITTED' || r.status === 'DRAFT'">
+                  {{ r.status }}
+                </span>
+              </td>
+              <td>
+                <button class="btn-table-action" (click)="openAppraisalModal(r)">
+                  <i class="bi bi-pencil-square"></i> Evaluate
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="teamReviews.length === 0">
+              <td colspan="7" class="empty-table-cell">No appraisal records found for this department.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: EDIT MEMBER DATA ==================== -->
+  <div class="modal-backdrop" *ngIf="showEditModal" (click)="closeEditModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="mh-title">
+          <i class="bi bi-pencil-square"></i>
+          <span>Edit Group Member Details</span>
+        </div>
+        <button class="btn-close-modal" (click)="closeEditModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" [(ngModel)]="editEmp.firstName" />
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" [(ngModel)]="editEmp.lastName" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Designation / Role</label>
+            <input type="text" [(ngModel)]="editEmp.designation" placeholder="e.g. Senior Software Architect" />
+          </div>
+          <div class="form-group">
+            <label>Contact Phone</label>
+            <input type="text" [(ngModel)]="editEmp.phone" placeholder="+91 98765 43210" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Employment Type</label>
+            <select [(ngModel)]="editEmp.employmentType">
+              <option value="FULL_TIME">Full Time</option>
+              <option value="PART_TIME">Part Time</option>
+              <option value="CONTRACT">Contract</option>
+              <option value="INTERN">Intern</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select [(ngModel)]="editEmp.status">
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="INACTIVE">INACTIVE</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Office Address / Workspace</label>
+          <input type="text" [(ngModel)]="editEmp.address" placeholder="e.g. Tech Park Floor 4" />
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeEditModal()">Cancel</button>
+        <button class="btn-primary" (click)="saveMemberData()" [disabled]="savingMember">
+          <i class="bi bi-check-lg"></i>
+          <span>{{ savingMember ? 'Saving...' : 'Save Changes' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: ADD TEAM MEMBER ==================== -->
+  <div class="modal-backdrop" *ngIf="showAddModal" (click)="closeAddModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="mh-title">
+          <i class="bi bi-person-plus-fill"></i>
+          <span>Add Employee to {{ managedDepartment?.name }}</span>
+        </div>
+        <button class="btn-close-modal" (click)="closeAddModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name *</label>
+            <input type="text" [(ngModel)]="newEmp.firstName" placeholder="First Name" />
+          </div>
+          <div class="form-group">
+            <label>Last Name *</label>
+            <input type="text" [(ngModel)]="newEmp.lastName" placeholder="Last Name" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Work Email *</label>
+            <input type="email" [(ngModel)]="newEmp.email" placeholder="name@ems.com" />
+          </div>
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="text" [(ngModel)]="newEmp.phone" placeholder="+91 98200 00000" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Designation *</label>
+            <input type="text" [(ngModel)]="newEmp.designation" placeholder="e.g. Software Engineer" />
+          </div>
+          <div class="form-group">
+            <label>Date of Joining</label>
+            <input type="date" [(ngModel)]="newEmp.dateOfJoining" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Employment Type</label>
+            <select [(ngModel)]="newEmp.employmentType">
+              <option value="FULL_TIME">Full Time</option>
+              <option value="PART_TIME">Part Time</option>
+              <option value="CONTRACT">Contract</option>
+              <option value="INTERN">Intern</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Assigned Department</label>
+            <input type="text" [value]="managedDepartment?.name" disabled class="disabled-input" />
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
+        <button class="btn-primary" (click)="submitAddMember()" [disabled]="addingMember">
+          <i class="bi bi-person-check-fill"></i>
+          <span>{{ addingMember ? 'Adding...' : 'Onboard Member' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: LEAVE REVIEW ==================== -->
+  <div class="modal-backdrop" *ngIf="showReviewModal" (click)="closeReviewModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="mh-title">
+          <i class="bi" [ngClass]="reviewAction === 'APPROVED' ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger'"></i>
+          <span>{{ reviewAction === 'APPROVED' ? 'Approve Team Leave' : 'Reject Team Leave' }}</span>
+        </div>
+        <button class="btn-close-modal" (click)="closeReviewModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <div class="modal-body" *ngIf="selectedLeave">
+        <div class="applicant-box">
+          <strong>{{ selectedLeave.employeeName }}</strong> applied for <strong>{{ selectedLeave.totalDays }} day(s)</strong> of {{ selectedLeave.leaveType }} leave ({{ selectedLeave.startDate }} to {{ selectedLeave.endDate }}).
+          <div class="applicant-reason">"{{ selectedLeave.reason }}"</div>
+        </div>
+
+        <div class="form-group">
+          <label>Manager Review Remarks</label>
+          <textarea [(ngModel)]="reviewRemarks" rows="3" placeholder="Add approval remarks or instructions for the team member..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeReviewModal()">Cancel</button>
+        <button 
+          class="btn-primary" 
+          [class.btn-danger]="reviewAction === 'REJECTED'"
+          (click)="submitLeaveReview()" 
+          [disabled]="reviewingLeave">
+          <span>{{ reviewingLeave ? 'Submitting...' : 'Confirm ' + reviewAction }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: SNAPSHOT DETAIL ==================== -->
+  <div class="modal-backdrop" *ngIf="showSnapshotModal" (click)="closeSnapshot()">
+    <div class="modal-card snapshot-card" (click)="$event.stopPropagation()">
+      <div class="snapshot-header" *ngIf="selectedMember">
+        <button class="btn-close-modal" (click)="closeSnapshot()"><i class="bi bi-x-lg"></i></button>
+        <div class="snap-avatar">{{ selectedMember.firstName.charAt(0) }}</div>
+        <h3>{{ selectedMember.firstName }} {{ selectedMember.lastName }}</h3>
+        <p>{{ selectedMember.designation || 'Specialist' }}</p>
+        <span class="status-badge status-active">{{ selectedMember.status }}</span>
+      </div>
+
+      <div class="snapshot-body" *ngIf="selectedMember">
+        <div class="snap-row">
+          <span class="sr-label"><i class="bi bi-envelope"></i> Email</span>
+          <span class="sr-val">{{ selectedMember.email }}</span>
+        </div>
+        <div class="snap-row">
+          <span class="sr-label"><i class="bi bi-telephone"></i> Phone</span>
+          <span class="sr-val">{{ selectedMember.phone || 'N/A' }}</span>
+        </div>
+        <div class="snap-row">
+          <span class="sr-label"><i class="bi bi-buildings"></i> Department</span>
+          <span class="sr-val">{{ managedDepartment?.name }}</span>
+        </div>
+        <div class="snap-row">
+          <span class="sr-label"><i class="bi bi-clock-history"></i> Employment</span>
+          <span class="sr-val">{{ selectedMember.employmentType || 'FULL_TIME' }}</span>
+        </div>
+        <div class="snap-row">
+          <span class="sr-label"><i class="bi bi-calendar-event"></i> Date of Joining</span>
+          <span class="sr-val">{{ selectedMember.dateOfJoining || 'N/A' }}</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-close-details" (click)="closeSnapshot()">Close Profile Card</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: MANAGER EVALUATION ==================== -->
+  <div class="modal-backdrop" *ngIf="showAppraisalModal && selectedAppraisal" (click)="closeAppraisalModal()">
+    <div class="modal-card modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="mh-title">
+          <i class="bi bi-award-fill"></i>
+          <span>Performance Evaluation: {{ selectedAppraisal.employeeName }}</span>
+        </div>
+        <button class="btn-close-modal" (click)="closeAppraisalModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="self-summary-box">
+          <h4>Employee Self-Appraisal Summary</h4>
+          <p><strong>Self Score:</strong> {{ selectedAppraisal.selfAverageScore }} / 5.0</p>
+          <p *ngIf="selectedAppraisal.selfAchievements"><strong>Key Wins:</strong> {{ selectedAppraisal.selfAchievements }}</p>
+          <p *ngIf="selectedAppraisal.selfImprovements"><strong>Growth Focus:</strong> {{ selectedAppraisal.selfImprovements }}</p>
+        </div>
+
+        <div class="eval-sliders">
+          <div class="eval-row">
+            <div class="er-head">
+              <span>Technical Competency & Quality (30%)</span>
+              <strong>{{ mgrTech }} / 5.0</strong>
+            </div>
+            <input type="range" min="1.0" max="5.0" step="0.1" [(ngModel)]="mgrTech" class="eval-range">
+          </div>
+
+          <div class="eval-row">
+            <div class="er-head">
+              <span>Delivery & Execution (30%)</span>
+              <strong>{{ mgrDel }} / 5.0</strong>
+            </div>
+            <input type="range" min="1.0" max="5.0" step="0.1" [(ngModel)]="mgrDel" class="eval-range">
+          </div>
+
+          <div class="eval-row">
+            <div class="er-head">
+              <span>Team Collaboration & Communication (20%)</span>
+              <strong>{{ mgrCol }} / 5.0</strong>
+            </div>
+            <input type="range" min="1.0" max="5.0" step="0.1" [(ngModel)]="mgrCol" class="eval-range">
+          </div>
+
+          <div class="eval-row">
+            <div class="er-head">
+              <span>Leadership & Initiative (20%)</span>
+              <strong>{{ mgrLdr }} / 5.0</strong>
+            </div>
+            <input type="range" min="1.0" max="5.0" step="0.1" [(ngModel)]="mgrLdr" class="eval-range">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 14px;">
+          <label>Manager Qualitative Feedback & Mentorship Goals:</label>
+          <textarea rows="3" [(ngModel)]="mgrFeedback" placeholder="Provide actionable feedback and performance remarks..."></textarea>
+        </div>
+
+        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px;">
+          <div class="form-group">
+            <label>Recommended Salary Revision (%):</label>
+            <input type="number" [(ngModel)]="recommendedIncrement" placeholder="e.g. 10.0">
+          </div>
+          <div class="form-group">
+            <label>Promotion Recommendation:</label>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+              <input type="checkbox" [(ngModel)]="recommendedPromotion" id="promoCheck">
+              <label for="promoCheck" style="margin: 0; cursor: pointer;">Recommend for Promotion</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" *ngIf="recommendedPromotion" style="margin-top: 12px;">
+          <label>Proposed New Designation:</label>
+          <input type="text" [(ngModel)]="recommendedDesignation" placeholder="e.g. Senior Software Architect">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeAppraisalModal()">Cancel</button>
+        <button class="btn-save" (click)="submitManagerAppraisal()" [disabled]="submittingReview">
+          {{ submittingReview ? 'Submitting...' : 'Complete & Submit Appraisal' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

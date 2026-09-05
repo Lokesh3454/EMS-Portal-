@@ -1,0 +1,469 @@
+<div class="performance-container">
+  <!-- Hero Banner -->
+  <div class="perf-hero-card">
+    <div class="hero-left">
+      <div class="hero-badge">
+        <i class="bi bi-award-fill"></i>
+        <span>ENTERPRISE PERFORMANCE MANAGEMENT (PMS)</span>
+      </div>
+      <h1 class="page-title">{{ activeCycle?.cycleName || 'FY2026 Q3 Mid-Year Review' }}</h1>
+      <p class="page-subtitle">
+        360-degree competency evaluation, measurable OKRs tracking, supervisor ratings, and merit-based promotion alignment.
+      </p>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat-box">
+        <span class="sb-label">REVIEW CYCLE</span>
+        <span class="sb-val">{{ activeCycle?.period || 'Q3 2026' }}</span>
+      </div>
+      <div class="stat-box">
+        <span class="sb-label">SELF SCORE</span>
+        <span class="sb-val highlight-val">{{ computedSelfAverage }} / 5.0</span>
+      </div>
+      <div class="stat-box" *ngIf="myReview?.finalRating">
+        <span class="sb-label">FINAL RATING</span>
+        <span class="sb-val text-gold">{{ myReview?.finalRating }} ★</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stepper Lifecycle Bar -->
+  <div class="lifecycle-stepper-card">
+    <div class="step-item" [class.step-done]="myReview?.status !== 'DRAFT'" [class.step-active]="myReview?.status === 'DRAFT'">
+      <div class="step-circle"><i class="bi bi-person-fill"></i></div>
+      <div class="step-text">
+        <span class="st-num">STEP 1</span>
+        <span class="st-name">Self-Appraisal</span>
+      </div>
+    </div>
+
+    <div class="step-connector" [class.connector-active]="myReview?.status === 'SELF_SUBMITTED' || myReview?.status === 'MANAGER_REVIEWED' || myReview?.status === 'COMPLETED'"></div>
+
+    <div class="step-item" [class.step-done]="myReview?.status === 'MANAGER_REVIEWED' || myReview?.status === 'COMPLETED'" [class.step-active]="myReview?.status === 'SELF_SUBMITTED'">
+      <div class="step-circle"><i class="bi bi-person-workspace"></i></div>
+      <div class="step-text">
+        <span class="st-num">STEP 2</span>
+        <span class="st-name">Manager Evaluation</span>
+      </div>
+    </div>
+
+    <div class="step-connector" [class.connector-active]="myReview?.status === 'COMPLETED'"></div>
+
+    <div class="step-item" [class.step-done]="myReview?.status === 'COMPLETED'" [class.step-active]="myReview?.status === 'MANAGER_REVIEWED'">
+      <div class="step-circle"><i class="bi bi-check2-circle"></i></div>
+      <div class="step-text">
+        <span class="st-num">STEP 3</span>
+        <span class="st-name">HR & Promotion Sign-off</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="perf-nav-tabs">
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'my-appraisal'"
+      (click)="activeTab = 'my-appraisal'">
+      <i class="bi bi-card-checklist"></i>
+      <span>My Scorecard & Review</span>
+    </button>
+
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'radar-matrix'"
+      (click)="activeTab = 'radar-matrix'">
+      <i class="bi bi-diagram-3-fill"></i>
+      <span>Competency Radar Matrix</span>
+    </button>
+
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'okr-goals'"
+      (click)="activeTab = 'okr-goals'">
+      <i class="bi bi-bullseye"></i>
+      <span>Quarterly OKRs & Goals</span>
+      <span class="tab-badge" *ngIf="goals.length > 0">{{ goals.length }}</span>
+    </button>
+  </div>
+
+  <!-- Alert Message -->
+  <div class="alert-success-banner" *ngIf="successMessage">
+    <i class="bi bi-check-circle-fill"></i>
+    <span>{{ successMessage }}</span>
+  </div>
+
+  <!-- TAB 1: MY SCORECARD -->
+  <div class="tab-content" *ngIf="activeTab === 'my-appraisal'">
+    <div class="appraisal-grid">
+      <!-- Left Column: Competency Sliders Form -->
+      <div class="competency-form-card">
+        <div class="card-head">
+          <div class="head-title">
+            <h2>Core Competency Self-Evaluation</h2>
+            <p>Score yourself objectively across the four enterprise pillars (1.0 - 5.0 scale).</p>
+          </div>
+          <div class="score-pill">
+            <span class="sp-lbl">Calculated Score</span>
+            <span class="sp-num">{{ computedSelfAverage }}</span>
+          </div>
+        </div>
+
+        <div class="sliders-list">
+          <!-- Dimension 1 -->
+          <div class="dimension-box">
+            <div class="dim-head">
+              <div class="dim-title">
+                <i class="bi bi-cpu-fill text-blue"></i>
+                <div>
+                  <strong>1. Technical Competency & Quality</strong>
+                  <span class="dim-wt">Weight: 30%</span>
+                </div>
+              </div>
+              <span class="score-display">{{ editTech }} / 5.0</span>
+            </div>
+            <p class="dim-desc">Technical problem solving, architecture standards, code reviews, and defect prevention.</p>
+            <input type="range" min="1.0" max="5.0" step="0.1" [(ngModel)]="editTech" class="custom-range" [disabled]="myReview?.status === 'COMPLETED'">
+            <div class="scale-labels">
+              <span>1.0 Unsatisfactory</span>
+              <span>3.0 Meets</span>
+              <span>5.0 Outstanding</span>
+            </div>
+          </div>
+
+          <!-- Dimension 2 -->
+          <div class="dimension-box">
+            <div class="dim-head">
+              <div class="dim-title">
+                <i class="bi bi-speedometer text-green"></i>
+                <div>
+                  <strong>2. Delivery & Execution</strong>
+                  <span class="dim-wt">Weight: 30%</span>
+                </div>
+              </div>
+              <span class="score-display">{{ editDel }} / 5.0</span>
+            </div>
+            <p class="dim-desc">Meeting project milestones, sprint velocity, reliability, and delivery commitments.</p>
+            <input type="range" min="1.0" max="5.0" step="0.1" [(ngModel)]="editDel" class="custom-range" [disabled]="myReview?.status === 'COMPLETED'">
+            <div class="scale-labels">
+              <span>1.0 Unsatisfactory</span>
+              <span>3.0 Meets</span>
+              <span>5.0 Outstanding</span>
+            </div>
+          </div>
+
+          <!-- Dimension 3 -->
+          <div class="dimension-box">
+            <div class="dim-head">
+              <div class="dim-title">
+                <i class="bi bi-people-fill text-purple"></i>
+                <div>
+                  <strong>3. Team Collaboration & Communication</strong>
+                  <span class="dim-wt">Weight: 20%</span>
+                </div>
+              </div>
+              <span class="score-display">{{ editCol }} / 5.0</span>
+            </div>
+            <p class="dim-desc">Knowledge transfer, peer mentorship, cross-team alignment, and positive communication.</p>
+            <input type="range" min="1.0" max="5.0" step="0.1" [(ngModel)]="editCol" class="custom-range" [disabled]="myReview?.status === 'COMPLETED'">
+            <div class="scale-labels">
+              <span>1.0 Unsatisfactory</span>
+              <span>3.0 Meets</span>
+              <span>5.0 Outstanding</span>
+            </div>
+          </div>
+
+          <!-- Dimension 4 -->
+          <div class="dimension-box">
+            <div class="dim-head">
+              <div class="dim-title">
+                <i class="bi bi-lightning-charge-fill text-amber"></i>
+                <div>
+                  <strong>4. Leadership & Proactive Ownership</strong>
+                  <span class="dim-wt">Weight: 20%</span>
+                </div>
+              </div>
+              <span class="score-display">{{ editLdr }} / 5.0</span>
+            </div>
+            <p class="dim-desc">Taking initiative beyond job scope, driving improvements, and resolving ambiguity.</p>
+            <input type="range" min="1.0" max="5.0" step="0.1" [(ngModel)]="editLdr" class="custom-range" [disabled]="myReview?.status === 'COMPLETED'">
+            <div class="scale-labels">
+              <span>1.0 Unsatisfactory</span>
+              <span>3.0 Meets</span>
+              <span>5.0 Outstanding</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Qualitative Statements -->
+        <div class="text-feedback-section">
+          <div class="form-group">
+            <label>Key Achievements & Milestone Deliveries:</label>
+            <textarea rows="3" [(ngModel)]="achievements" placeholder="Summarize your top wins and business impact during this cycle..." [disabled]="myReview?.status === 'COMPLETED'"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Target Areas for Continuous Improvement:</label>
+            <textarea rows="3" [(ngModel)]="improvements" placeholder="What skills, technologies, or leadership practices are you actively focusing on next?" [disabled]="myReview?.status === 'COMPLETED'"></textarea>
+          </div>
+        </div>
+
+        <div class="form-footer-action">
+          <button class="btn-submit-self" (click)="submitSelfAppraisal()" [disabled]="submitting || myReview?.status === 'COMPLETED'">
+            <i class="bi" [ngClass]="submitting ? 'bi-arrow-repeat spin' : 'bi-send-check-fill'"></i>
+            <span>{{ myReview?.status === 'COMPLETED' ? 'Review Finalized' : (submitting ? 'Submitting...' : 'Submit Self-Appraisal') }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Column: Manager Evaluation & Promotion Status -->
+      <div class="manager-review-panel">
+        <div class="review-status-card">
+          <span class="rs-label">Appraisal Status</span>
+          <div class="rs-badge" [class.badge-final]="myReview?.status === 'COMPLETED'">
+            {{ myReview?.status || 'DRAFT' }}
+          </div>
+        </div>
+
+        <!-- Manager Feedback Box -->
+        <div class="mgr-feedback-card" *ngIf="myReview?.mgrAverageScore">
+          <div class="mf-head">
+            <div class="mf-icon"><i class="bi bi-chat-square-quote-fill"></i></div>
+            <div>
+              <h3>Manager Review & Feedback</h3>
+              <span class="mf-eval">Evaluator: {{ myReview?.managerName || 'Department Manager' }}</span>
+            </div>
+          </div>
+
+          <div class="score-comparison-row">
+            <div class="cmp-box">
+              <span class="cmp-title">Self Score</span>
+              <span class="cmp-val">{{ myReview?.selfAverageScore }}</span>
+            </div>
+            <div class="cmp-box">
+              <span class="cmp-title">Manager Score</span>
+              <span class="cmp-val text-blue">{{ myReview?.mgrAverageScore }}</span>
+            </div>
+            <div class="cmp-box highlight-cmp">
+              <span class="cmp-title">Final Weighted Rating</span>
+              <span class="cmp-val text-gold">{{ myReview?.finalRating }} ★</span>
+            </div>
+          </div>
+
+          <div class="feedback-quote">
+            <p>{{ myReview?.managerFeedback || 'Strong consistency in delivering core features. Keep building leadership in cross-team architecture discussions.' }}</p>
+          </div>
+
+          <!-- Promotion & Increment Callout -->
+          <div class="promotion-callout" *ngIf="myReview?.recommendedIncrement || myReview?.recommendedPromotion">
+            <h4><i class="bi bi-stars"></i> Merit Recommendations</h4>
+            <div class="rec-pills">
+              <span class="rec-pill" *ngIf="myReview?.recommendedIncrement">
+                <i class="bi bi-graph-up-arrow"></i> +{{ myReview?.recommendedIncrement }}% Salary Increment
+              </span>
+              <span class="rec-pill green-pill" *ngIf="myReview?.recommendedPromotion">
+                <i class="bi bi-trophy-fill"></i> Promotion to {{ myReview?.recommendedDesignation || 'Next Level' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="awaiting-box" *ngIf="!myReview?.mgrAverageScore">
+          <div class="await-icon"><i class="bi bi-hourglass-split"></i></div>
+          <h3>Awaiting Manager Evaluation</h3>
+          <p>Once you submit your self-appraisal, your department manager will review your scores and provide official growth feedback.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: COMPETENCY RADAR MATRIX -->
+  <div class="tab-content" *ngIf="activeTab === 'radar-matrix'">
+    <div class="radar-card">
+      <div class="radar-head">
+        <h2>Enterprise Skill & Competency Matrix</h2>
+        <p>Holistic distribution visualizing Technical Quality, Delivery, Collaboration, and Leadership.</p>
+      </div>
+
+      <div class="matrix-layout">
+        <!-- SVG Visual Graphic -->
+        <div class="radar-visual">
+          <svg viewBox="0 0 400 400" class="radar-svg">
+            <!-- Background Rings -->
+            <polygon points="200,60 340,200 200,340 60,200" fill="none" stroke="#e2e8f0" stroke-width="1.5" />
+            <polygon points="200,100 300,200 200,300 100,200" fill="none" stroke="#e2e8f0" stroke-width="1.5" />
+            <polygon points="200,140 260,200 200,260 140,200" fill="none" stroke="#e2e8f0" stroke-width="1.5" />
+
+            <!-- Axis Lines -->
+            <line x1="200" y1="40" x2="200" y2="360" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4" />
+            <line x1="40" y1="200" x2="360" y2="200" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4" />
+
+            <!-- Data Polygon (Self Review) -->
+            <!-- Top: Technical, Right: Delivery, Bottom: Leadership, Left: Collaboration -->
+            <polygon 
+              [attr.points]="'200,' + (200 - (editTech * 28)) + ' ' + 
+                             (200 + (editDel * 28)) + ',200 ' + 
+                             '200,' + (200 + (editLdr * 28)) + ' ' + 
+                             (200 - (editCol * 28)) + ',200'"
+              fill="rgba(2, 132, 199, 0.25)" 
+              stroke="#0284c7" 
+              stroke-width="2.5" />
+
+            <!-- Dimension Axis Labels -->
+            <text x="200" y="30" text-anchor="middle" font-weight="700" font-size="12" fill="#0284c7">Technical ({{ editTech }})</text>
+            <text x="375" y="205" text-anchor="start" font-weight="700" font-size="12" fill="#16a34a">Delivery ({{ editDel }})</text>
+            <text x="200" y="380" text-anchor="middle" font-weight="700" font-size="12" fill="#d97706">Leadership ({{ editLdr }})</text>
+            <text x="25" y="205" text-anchor="end" font-weight="700" font-size="12" fill="#9333ea">Collaboration ({{ editCol }})</text>
+          </svg>
+        </div>
+
+        <!-- Competency Bar Meters -->
+        <div class="matrix-meters">
+          <div class="meter-row">
+            <div class="m-head">
+              <span>Technical Competency & Quality</span>
+              <strong>{{ editTech }} / 5.0 ({{ (editTech/5)*100 | number:'1.0-0' }}%)</strong>
+            </div>
+            <div class="bar-track"><div class="bar-fill bar-blue" [style.width.%]="(editTech / 5) * 100"></div></div>
+          </div>
+
+          <div class="meter-row">
+            <div class="m-head">
+              <span>Delivery & Execution Reliability</span>
+              <strong>{{ editDel }} / 5.0 ({{ (editDel/5)*100 | number:'1.0-0' }}%)</strong>
+            </div>
+            <div class="bar-track"><div class="bar-fill bar-green" [style.width.%]="(editDel / 5) * 100"></div></div>
+          </div>
+
+          <div class="meter-row">
+            <div class="m-head">
+              <span>Cross-Team Collaboration</span>
+              <strong>{{ editCol }} / 5.0 ({{ (editCol/5)*100 | number:'1.0-0' }}%)</strong>
+            </div>
+            <div class="bar-track"><div class="bar-fill bar-purple" [style.width.%]="(editCol / 5) * 100"></div></div>
+          </div>
+
+          <div class="meter-row">
+            <div class="m-head">
+              <span>Leadership & Proactive Ownership</span>
+              <strong>{{ editLdr }} / 5.0 ({{ (editLdr/5)*100 | number:'1.0-0' }}%)</strong>
+            </div>
+            <div class="bar-track"><div class="bar-fill bar-amber" [style.width.%]="(editLdr / 5) * 100"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: OKRS & GOALS -->
+  <div class="tab-content" *ngIf="activeTab === 'okr-goals'">
+    <div class="goals-card">
+      <div class="goals-top-bar">
+        <div class="gt-head">
+          <h2>Quarterly Objectives & Key Results (OKRs)</h2>
+          <p>Track delivery milestones, update progress percentages, and demonstrate quantifiable value.</p>
+        </div>
+        <button class="btn-new-goal" (click)="openGoalModal()">
+          <i class="bi bi-plus-lg"></i>
+          <span>Add New Goal</span>
+        </button>
+      </div>
+
+      <!-- Goals Overview Bar -->
+      <div class="goals-summary-strip">
+        <div class="gs-pill">
+          <span class="gs-label">ACTIVE GOALS</span>
+          <span class="gs-val">{{ goals.length }} Target OKRs</span>
+        </div>
+        <div class="gs-pill">
+          <span class="gs-label">COMPLETED</span>
+          <span class="gs-val text-green">{{ completedGoalsCount }} Goals</span>
+        </div>
+        <div class="gs-pill highlight-pill">
+          <span class="gs-label">OVERALL PROGRESS</span>
+          <span class="gs-val text-blue">{{ overallGoalsProgress }}% Complete</span>
+        </div>
+      </div>
+
+      <!-- Goals List -->
+      <div class="goals-grid">
+        <div class="goal-item-box" *ngFor="let g of goals">
+          <div class="gi-top">
+            <span class="cat-pill" [class.cat-tech]="g.category === 'TECHNICAL'" [class.cat-del]="g.category === 'DELIVERY'" [class.cat-ldr]="g.category === 'LEADERSHIP'">
+              {{ g.category }}
+            </span>
+            <span class="target-date"><i class="bi bi-calendar-event"></i> Due {{ g.targetDate }}</span>
+          </div>
+
+          <h3 class="gi-title">{{ g.title }}</h3>
+          <p class="gi-desc">{{ g.description }}</p>
+
+          <div class="gi-progress-block">
+            <div class="progress-labels">
+              <span>Progress</span>
+              <strong>{{ g.progressPercentage }}%</strong>
+            </div>
+            <input 
+              type="range" 
+              min="0" 
+              max="100" 
+              [ngModel]="g.progressPercentage"
+              (ngModelChange)="updateGoalProgress(g, $event)"
+              class="goal-slider">
+          </div>
+
+          <div class="gi-footer">
+            <span class="status-tag" [class.tag-done]="g.progressPercentage === 100">
+              <i class="bi" [ngClass]="g.progressPercentage === 100 ? 'bi-check-circle-fill' : 'bi-clock-history'"></i>
+              {{ g.progressPercentage === 100 ? 'Completed' : 'In Progress' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD GOAL MODAL -->
+  <div class="modal-overlay" *ngIf="showGoalModal" (click)="closeGoalModal()">
+    <div class="goal-modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Create New Objective / OKR</h3>
+        <button class="btn-close" (click)="closeGoalModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Objective Title:</label>
+          <input type="text" [(ngModel)]="newGoalTitle" placeholder="e.g. Optimize Database Query Latency">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category:</label>
+            <select [(ngModel)]="newGoalCategory">
+              <option value="TECHNICAL">Technical & Quality</option>
+              <option value="DELIVERY">Delivery & Execution</option>
+              <option value="LEADERSHIP">Leadership & Ownership</option>
+              <option value="INNOVATION">Innovation & Process</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Target Completion Date:</label>
+            <input type="date" [(ngModel)]="newGoalDate">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Description & Success Criteria:</label>
+          <textarea rows="3" [(ngModel)]="newGoalDesc" placeholder="Describe the measurable deliverables for this objective..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeGoalModal()">Cancel</button>
+        <button class="btn-save-goal" (click)="saveNewGoal()" [disabled]="!newGoalTitle.trim()">Save Objective</button>
+      </div>
+    </div>
+  </div>
+</div>

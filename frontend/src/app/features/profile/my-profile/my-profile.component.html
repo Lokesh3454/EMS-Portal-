@@ -1,0 +1,311 @@
+<div class="page-container">
+  <!-- Success Notification -->
+  <div class="toast-alert alert-success" *ngIf="successMessage">
+    <i class="bi bi-check-circle-fill"></i>
+    <span>{{ successMessage }}</span>
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">
+        <i class="bi" [ngClass]="authService.isAdmin() ? 'bi-shield-shaded text-primary' : 'bi-person-badge-fill'"></i>
+        {{ authService.isAdmin() ? 'Administrator Profile' : 'My Profile' }}
+      </h1>
+      <p class="page-subtitle">
+        {{ authService.isAdmin() ? 'Manage your administrator account, privileges, and security credentials' : 'View and manage your personal employee credentials and records' }}
+      </p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-action-outline" (click)="openEditContact()">
+        <i class="bi bi-pencil-fill"></i> Edit Info
+      </button>
+      <button class="btn-action-primary" (click)="openChangePassword()">
+        <i class="bi bi-shield-lock-fill"></i> Change Password
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading">
+    <div class="spinner-large"></div>
+    <p>Loading profile...</p>
+  </div>
+
+  <!-- Error Alert -->
+  <div class="alert-box alert-danger" *ngIf="!loading && errorMessage">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <!-- Profile Content -->
+  <div class="profile-layout" *ngIf="!loading && employee">
+    <!-- Hero Profile Card -->
+    <div class="profile-hero-card">
+      <div class="hero-cover">
+        <div class="cover-pattern"></div>
+      </div>
+      <div class="hero-body">
+        <div class="hero-avatar">
+          {{ getInitials() }}
+        </div>
+        <div class="hero-info">
+          <div class="hero-title-row">
+            <h2 class="hero-name">{{ employee.firstName }} {{ employee.lastName }}</h2>
+            <span class="status-badge" [ngClass]="employee.status === 'ACTIVE' ? 'badge-active' : 'badge-inactive'">
+              <span class="status-dot"></span>
+              {{ employee.status }}
+            </span>
+          </div>
+          <p class="hero-designation">{{ employee.designation || (authService.isAdmin() ? 'System Administrator' : 'Team Member') }}</p>
+          <div class="hero-badges">
+            <span class="badge-chip chip-id">
+              <i class="bi bi-person-vcard"></i> {{ employee.empId || 'ADM001' }}
+            </span>
+            <span class="badge-chip chip-dept" *ngIf="employee.departmentName">
+              <i class="bi bi-buildings"></i> {{ employee.departmentName }}
+            </span>
+            <span class="badge-chip chip-role">
+              <i class="bi bi-shield-check"></i> {{ authService.getRole() }}
+            </span>
+            <span class="badge-chip chip-admin" *ngIf="authService.isAdmin()">
+              <i class="bi bi-star-fill"></i> Super Administrator
+            </span>
+            <span class="badge-chip chip-date" *ngIf="employee.dateOfJoining">
+              <i class="bi bi-calendar-check"></i> Since {{ employee.dateOfJoining | date:'mediumDate' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cards Grid -->
+    <div class="profile-grid">
+      <!-- 1. Contact Information Card -->
+      <div class="info-card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="bi bi-telephone-fill"></i> Contact & Location
+          </h3>
+          <button class="btn-card-action" (click)="openEditContact()" title="Edit Info">
+            <i class="bi bi-pencil-fill"></i> Edit
+          </button>
+        </div>
+        <div class="info-list">
+          <div class="info-row">
+            <span class="info-label">Official Email</span>
+            <span class="info-value">
+              <a [href]="'mailto:' + employee.email" class="value-link">
+                <i class="bi bi-envelope"></i> {{ employee.email }}
+              </a>
+            </span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Contact Phone</span>
+            <span class="info-value">
+              <a *ngIf="employee.phone" [href]="'tel:' + employee.phone" class="value-link">
+                <i class="bi bi-phone"></i> {{ employee.phone }}
+              </a>
+              <span *ngIf="!employee.phone" class="text-muted">No phone recorded</span>
+            </span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Office Location / Address</span>
+            <span class="info-value">{{ employee.address || 'Headquarters' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Organizational Details Card -->
+      <div class="info-card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="bi bi-briefcase-fill"></i> Role & Classification
+          </h3>
+        </div>
+        <div class="info-list">
+          <div class="info-row">
+            <span class="info-label">Identifier ID</span>
+            <span class="info-value font-mono">{{ employee.empId || 'ADM001' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Department</span>
+            <span class="info-value">
+              <span class="dept-pill">{{ employee.departmentName || 'Administration' }}</span>
+            </span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Designation</span>
+            <span class="info-value">{{ employee.designation || 'System Administrator' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Classification</span>
+            <span class="info-value">{{ employee.employmentType || 'FULL_TIME' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Active Since</span>
+            <span class="info-value">{{ (employee.dateOfJoining | date:'longDate') || '—' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. System Privileges Card (Admin Specific) -->
+      <div class="info-card full-width-card" *ngIf="authService.isAdmin()">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="bi bi-shield-lock-fill"></i> Administrator Permissions & Controls
+          </h3>
+        </div>
+        <div class="privileges-grid">
+          <div class="privilege-box">
+            <div class="privilege-icon"><i class="bi bi-people-fill"></i></div>
+            <div class="privilege-meta">
+              <h4>Employee Management</h4>
+              <p>Full read, write, update, and deactivation permissions across all organizational employee records.</p>
+            </div>
+          </div>
+          <div class="privilege-box">
+            <div class="privilege-icon"><i class="bi bi-buildings-fill"></i></div>
+            <div class="privilege-meta">
+              <h4>Department Architecture</h4>
+              <p>Permission to create new business departments, modify departmental assignments, and maintain structures.</p>
+            </div>
+          </div>
+          <div class="privilege-box">
+            <div class="privilege-icon"><i class="bi bi-key-fill"></i></div>
+            <div class="privilege-meta">
+              <h4>Security & Credentials</h4>
+              <p>Authority to rotate passwords, enforce role-based access control, and manage system authentication.</p>
+            </div>
+          </div>
+        </div>
+        <div class="admin-quick-actions">
+          <a routerLink="/employees" class="btn-admin-action"><i class="bi bi-people-fill"></i> Employee Directory</a>
+          <a routerLink="/employees/new" class="btn-admin-action"><i class="bi bi-person-plus-fill"></i> Add New Employee</a>
+          <a routerLink="/departments" class="btn-admin-action"><i class="bi bi-buildings-fill"></i> Manage Departments</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 1: Edit Contact Info -->
+<div class="modal-overlay" *ngIf="showContactModal" (click)="closeEditContact()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-title"><i class="bi bi-pencil-square"></i> Update Information</h3>
+      <button class="btn-modal-close" (click)="closeEditContact()"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <form [formGroup]="contactForm" (ngSubmit)="saveContact()">
+      <div class="form-row" *ngIf="authService.isAdmin()" style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+        <div class="form-group" style="flex: 1;">
+          <label class="form-label" for="fnInput">First Name</label>
+          <input id="fnInput" type="text" class="form-control" formControlName="firstName" placeholder="First Name"/>
+        </div>
+        <div class="form-group" style="flex: 1;">
+          <label class="form-label" for="lnInput">Last Name</label>
+          <input id="lnInput" type="text" class="form-control" formControlName="lastName" placeholder="Last Name"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="phoneInput">Contact Phone</label>
+        <input
+          id="phoneInput"
+          type="text"
+          class="form-control"
+          formControlName="phone"
+          placeholder="e.g. +1 555-0199"
+        />
+        <div class="invalid-feedback" *ngIf="contactForm.get('phone')?.invalid && (contactForm.get('phone')?.touched || contactForm.get('phone')?.dirty)">
+          Please provide a valid phone number.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="addressInput">Residential Address</label>
+        <textarea
+          id="addressInput"
+          rows="3"
+          class="form-control"
+          formControlName="address"
+          placeholder="Street address, City, State, ZIP..."
+        ></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="closeEditContact()" [disabled]="savingContact">
+          Cancel
+        </button>
+        <button type="submit" class="btn-save" [disabled]="savingContact">
+          <span *ngIf="!savingContact">Save Changes</span>
+          <span *ngIf="savingContact">Saving...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal 2: Change Password -->
+<div class="modal-overlay" *ngIf="showPasswordModal" (click)="closeChangePassword()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-title"><i class="bi bi-shield-lock"></i> Change Your Password</h3>
+      <button class="btn-modal-close" (click)="closeChangePassword()"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="alert-box alert-danger" *ngIf="passwordError">
+      <i class="bi bi-exclamation-circle-fill"></i>
+      <span>{{ passwordError }}</span>
+    </div>
+
+    <form [formGroup]="passwordForm" (ngSubmit)="savePassword()">
+      <div class="form-group">
+        <label class="form-label" for="currentPass">Current Password</label>
+        <input
+          id="currentPass"
+          type="password"
+          class="form-control"
+          formControlName="currentPassword"
+          placeholder="Enter current password"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="newPass">New Password (min 8 characters)</label>
+        <input
+          id="newPass"
+          type="password"
+          class="form-control"
+          formControlName="newPassword"
+          placeholder="Enter new strong password"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="confirmPass">Confirm New Password</label>
+        <input
+          id="confirmPass"
+          type="password"
+          class="form-control"
+          formControlName="confirmPassword"
+          placeholder="Re-type new password"
+        />
+        <div class="invalid-feedback" *ngIf="passwordForm.errors?.['passwordMismatch'] && passwordForm.get('confirmPassword')?.touched">
+          Passwords do not match.
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="closeChangePassword()" [disabled]="savingPassword">
+          Cancel
+        </button>
+        <button type="submit" class="btn-save" [disabled]="savingPassword">
+          <span *ngIf="!savingPassword">Update Password</span>
+          <span *ngIf="savingPassword">Updating...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

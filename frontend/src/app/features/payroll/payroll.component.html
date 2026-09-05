@@ -1,0 +1,565 @@
+<div class="payroll-container">
+  <!-- Top Hero Header -->
+  <div class="payroll-header-card">
+    <div class="header-left">
+      <div class="header-badge">
+        <i class="bi bi-wallet2"></i>
+        <span>COMPENSATION & PAYROLL SUITE</span>
+      </div>
+      <h1 class="page-title">Enterprise Payroll Portal</h1>
+      <p class="page-subtitle">
+        Transparent monthly earnings, integrated Loss-of-Pay tracking, automated tax deductions, and authenticated PDF payslips.
+      </p>
+    </div>
+
+    <!-- Quick Stats Pills -->
+    <div class="header-stats-row">
+      <div class="quick-stat-pill">
+        <span class="stat-label">ANNUAL CTC</span>
+        <span class="stat-val">₹{{ (myStructure?.annualCtc || 960000) | number:'1.0-0' }}</span>
+      </div>
+      <div class="quick-stat-pill">
+        <span class="stat-label">MONTHLY GROSS</span>
+        <span class="stat-val">₹{{ (myStructure?.monthlyGross || 80000) | number:'1.0-0' }}</span>
+      </div>
+      <div class="quick-stat-pill accent-pill">
+        <span class="stat-label">LATEST TAKE-HOME</span>
+        <span class="stat-val highlight-val">₹{{ (selectedPayslip?.netPay || 72300) | number:'1.0-0' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="payroll-nav-tabs">
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'my-payslips'"
+      (click)="activeTab = 'my-payslips'">
+      <i class="bi bi-file-earmark-spreadsheet"></i>
+      <span>My Payslips</span>
+      <span class="tab-badge" *ngIf="myPayslips.length > 0">{{ myPayslips.length }}</span>
+    </button>
+
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'salary-structure'"
+      (click)="activeTab = 'salary-structure'">
+      <i class="bi bi-pie-chart-fill"></i>
+      <span>Compensation Structure</span>
+    </button>
+
+    <button 
+      class="tab-btn" 
+      *ngIf="isAdminOrHr"
+      [class.active]="activeTab === 'admin-payroll'"
+      (click)="activeTab = 'admin-payroll'">
+      <i class="bi bi-gear-wide-connected"></i>
+      <span>Admin Payroll Hub</span>
+    </button>
+  </div>
+
+  <!-- Action Alert Message -->
+  <div class="alert-banner" *ngIf="actionMessage">
+    <i class="bi bi-check-circle-fill"></i>
+    <span>{{ actionMessage }}</span>
+  </div>
+
+  <!-- TAB 1: MY PAYSLIPS -->
+  <div class="tab-content" *ngIf="activeTab === 'my-payslips'">
+    <div class="payslips-layout">
+      <!-- Left Column: Payslip Period Selector Roster -->
+      <div class="payslips-sidebar">
+        <div class="sidebar-head">
+          <h3>Pay Statements</h3>
+          <span class="sub-text">Select a pay period to review</span>
+        </div>
+
+        <div class="period-list" *ngIf="myPayslips.length > 0">
+          <div 
+            *ngFor="let p of myPayslips" 
+            class="period-item-card"
+            [class.active-period]="selectedPayslip?.id === p.id"
+            (click)="selectPayslip(p)">
+            <div class="period-icon">
+              <i class="bi bi-calendar-check"></i>
+            </div>
+            <div class="period-details">
+              <span class="period-title">{{ p.monthName }}</span>
+              <span class="period-net">Net: ₹{{ p.netPay | number:'1.0-0' }}</span>
+            </div>
+            <span class="status-chip" [class.chip-paid]="p.status === 'PAID'">{{ p.status }}</span>
+          </div>
+        </div>
+
+        <div class="empty-list-box" *ngIf="myPayslips.length === 0 && !loading">
+          <i class="bi bi-inbox"></i>
+          <p>No pay statements generated yet.</p>
+        </div>
+      </div>
+
+      <!-- Right Column: Active Statement Deep Dive -->
+      <div class="payslip-preview-card" *ngIf="selectedPayslip">
+        <div class="card-top-bar">
+          <div class="top-title-group">
+            <span class="tag-pill">{{ selectedPayslip.monthName }} Statement</span>
+            <h2>Summary & Deductions</h2>
+            <span class="tx-ref"><i class="bi bi-hash"></i> Ref: {{ selectedPayslip.transactionReference || 'TXN-PENDING' }}</span>
+          </div>
+
+          <div class="top-actions">
+            <button class="btn-primary-action" (click)="openPayslipModal(selectedPayslip)">
+              <i class="bi bi-printer-fill"></i>
+              <span>View & Print Payslip</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3 Primary KPI Cards -->
+        <div class="kpi-cards-grid">
+          <div class="kpi-card gross-card">
+            <div class="kpi-icon"><i class="bi bi-arrow-up-right-circle-fill"></i></div>
+            <div class="kpi-info">
+              <span class="kpi-title">Gross Earnings</span>
+              <span class="kpi-amount">₹{{ selectedPayslip.grossPay | number:'1.0-0' }}</span>
+              <span class="kpi-sub">30 Days Pro-rated</span>
+            </div>
+          </div>
+
+          <div class="kpi-card ded-card">
+            <div class="kpi-icon"><i class="bi bi-arrow-down-left-circle-fill"></i></div>
+            <div class="kpi-info">
+              <span class="kpi-title">Total Deductions</span>
+              <span class="kpi-amount">₹{{ selectedPayslip.totalDeductions | number:'1.0-0' }}</span>
+              <span class="kpi-sub">PF, PT, TDS & LOP</span>
+            </div>
+          </div>
+
+          <div class="kpi-card net-card">
+            <div class="kpi-icon"><i class="bi bi-bank2"></i></div>
+            <div class="kpi-info">
+              <span class="kpi-title">Net Disbursed</span>
+              <span class="kpi-amount highlight-green">₹{{ selectedPayslip.netPay | number:'1.0-0' }}</span>
+              <span class="kpi-sub">Direct Bank Deposit</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attendance & Days Metric Pill Row -->
+        <div class="days-summary-bar">
+          <div class="day-metric">
+            <i class="bi bi-calendar-event"></i>
+            <span>Calendar Days: <strong>{{ selectedPayslip.totalDaysInMonth }}</strong></span>
+          </div>
+          <div class="day-metric text-green">
+            <i class="bi bi-check-circle-fill"></i>
+            <span>Worked Days: <strong>{{ selectedPayslip.daysWorked }}</strong></span>
+          </div>
+          <div class="day-metric text-blue">
+            <i class="bi bi-sun-fill"></i>
+            <span>Paid Leaves: <strong>{{ selectedPayslip.paidLeaves }}</strong></span>
+          </div>
+          <div class="day-metric text-red">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>LOP Absent: <strong>{{ selectedPayslip.lossOfPayDays }} days (₹{{ selectedPayslip.lossOfPayDeduction | number:'1.0-0' }})</strong></span>
+          </div>
+        </div>
+
+        <!-- Breakdown Dual Columns -->
+        <div class="breakdown-grid">
+          <!-- Earnings Column -->
+          <div class="breakdown-panel">
+            <div class="panel-head earnings-head">
+              <i class="bi bi-cash-stack"></i>
+              <h4>Earnings Components</h4>
+            </div>
+            <div class="line-items">
+              <div class="line-row">
+                <span>Basic Salary (50%)</span>
+                <strong>₹{{ selectedPayslip.basicPay | number:'1.0-0' }}</strong>
+              </div>
+              <div class="line-row">
+                <span>House Rent Allowance (HRA 20%)</span>
+                <strong>₹{{ selectedPayslip.hra | number:'1.0-0' }}</strong>
+              </div>
+              <div class="line-row">
+                <span>Special Allowance (20%)</span>
+                <strong>₹{{ selectedPayslip.specialAllowance | number:'1.0-0' }}</strong>
+              </div>
+              <div class="line-row">
+                <span>Conveyance & Medical Allowances</span>
+                <strong>₹{{ selectedPayslip.otherAllowances | number:'1.0-0' }}</strong>
+              </div>
+              <div class="line-row total-row">
+                <span>Total Gross Earnings</span>
+                <strong class="text-green">₹{{ selectedPayslip.grossPay | number:'1.0-0' }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Deductions Column -->
+          <div class="breakdown-panel">
+            <div class="panel-head deductions-head">
+              <i class="bi bi-scissors"></i>
+              <h4>Deductions & Taxes</h4>
+            </div>
+            <div class="line-items">
+              <div class="line-row">
+                <span>Provident Fund (PF - 12% Basic)</span>
+                <strong>₹{{ selectedPayslip.pfDeduction | number:'1.0-0' }}</strong>
+              </div>
+              <div class="line-row">
+                <span>Professional Tax (PT)</span>
+                <strong>₹{{ selectedPayslip.professionalTax | number:'1.0-0' }}</strong>
+              </div>
+              <div class="line-row">
+                <span>Income Tax (TDS Deduction)</span>
+                <strong>₹{{ selectedPayslip.tdsDeduction | number:'1.0-0' }}</strong>
+              </div>
+              <div class="line-row" [class.alert-lop]="selectedPayslip.lossOfPayDeduction > 0">
+                <span>Loss of Pay (Unpaid Leave)</span>
+                <strong class="text-red">₹{{ selectedPayslip.lossOfPayDeduction | number:'1.0-0' }}</strong>
+              </div>
+              <div class="line-row total-row">
+                <span>Total Deductions</span>
+                <strong class="text-red">₹{{ selectedPayslip.totalDeductions | number:'1.0-0' }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bank Routing Footer -->
+        <div class="bank-footer-card">
+          <div class="bank-item">
+            <span class="b-label">Disbursement Bank:</span>
+            <span class="b-val">{{ selectedPayslip.bankName || 'HDFC Bank Corp' }}</span>
+          </div>
+          <div class="bank-item">
+            <span class="b-label">A/C Number:</span>
+            <span class="b-val">{{ selectedPayslip.accountNumber || '50100492812' }}</span>
+          </div>
+          <div class="bank-item">
+            <span class="b-label">PAN Number:</span>
+            <span class="b-val">{{ selectedPayslip.panNumber || 'ABCDE1234F' }}</span>
+          </div>
+          <div class="bank-item">
+            <span class="b-label">Disbursal Date:</span>
+            <span class="b-val">{{ selectedPayslip.disbursalDate || '2026-09-28' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: SALARY STRUCTURE -->
+  <div class="tab-content" *ngIf="activeTab === 'salary-structure'">
+    <div class="structure-card" *ngIf="myStructure">
+      <div class="structure-head">
+        <div class="head-info">
+          <h2>Annual Cost-to-Company (CTC) Blueprint</h2>
+          <p>Transparent enterprise breakdown of fixed and statutory employee components.</p>
+        </div>
+        <div class="annual-ctc-pill">
+          <span class="ctc-label">TOTAL ANNUAL CTC</span>
+          <span class="ctc-val">₹{{ myStructure.annualCtc | number:'1.0-0' }}</span>
+        </div>
+      </div>
+
+      <div class="structure-breakdown-grid">
+        <div class="part-card">
+          <h3><i class="bi bi-shield-check"></i> Statutory & Fixed Base</h3>
+          <div class="part-item">
+            <span>Basic Pay (50%)</span>
+            <strong>₹{{ myStructure.basicPay | number:'1.0-0' }} / mo</strong>
+          </div>
+          <div class="part-item">
+            <span>HRA (20%)</span>
+            <strong>₹{{ myStructure.hra | number:'1.0-0' }} / mo</strong>
+          </div>
+          <div class="part-item">
+            <span>Special Allowance (20%)</span>
+            <strong>₹{{ myStructure.specialAllowance | number:'1.0-0' }} / mo</strong>
+          </div>
+          <div class="part-item">
+            <span>Conveyance & Medical (10%)</span>
+            <strong>₹{{ ((myStructure.conveyanceAllowance || 0) + (myStructure.medicalAllowance || 0)) | number:'1.0-0' }} / mo</strong>
+          </div>
+        </div>
+
+        <div class="part-card">
+          <h3><i class="bi bi-wallet-fill"></i> Statutory Deductions</h3>
+          <div class="part-item">
+            <span>Provident Fund (PF - 12%)</span>
+            <strong>₹{{ myStructure.pfEmployee | number:'1.0-0' }} / mo</strong>
+          </div>
+          <div class="part-item">
+            <span>Professional Tax</span>
+            <strong>₹{{ myStructure.professionalTax | number:'1.0-0' }} / mo</strong>
+          </div>
+          <div class="part-item">
+            <span>Estimated Monthly TDS</span>
+            <strong>₹{{ myStructure.incomeTaxTds | number:'1.0-0' }} / mo</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: ADMIN PAYROLL HUB -->
+  <div class="tab-content" *ngIf="activeTab === 'admin-payroll' && isAdminOrHr">
+    <div class="admin-payroll-card">
+      <div class="admin-control-bar">
+        <div class="control-left">
+          <div class="batch-month-selector">
+            <label>Pay Period:</label>
+            <select [(ngModel)]="adminMonth" (change)="loadAdminPayroll()">
+              <option [ngValue]="8">August 2026</option>
+              <option [ngValue]="9">September 2026</option>
+              <option [ngValue]="10">October 2026</option>
+            </select>
+            <select [(ngModel)]="adminYear" (change)="loadAdminPayroll()">
+              <option [ngValue]="2026">2026</option>
+              <option [ngValue]="2027">2027</option>
+            </select>
+          </div>
+
+          <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" [(ngModel)]="adminSearch" placeholder="Search employee name, ID, role...">
+          </div>
+        </div>
+
+        <div class="control-right">
+          <button class="btn-batch-run" (click)="runBatchPayroll()" [disabled]="generating">
+            <i class="bi" [ngClass]="generating ? 'bi-arrow-repeat spin' : 'bi-lightning-charge-fill'"></i>
+            <span>{{ generating ? 'Calculating...' : 'Run Monthly Batch' }}</span>
+          </button>
+
+          <button class="btn-export-csv" (click)="exportBankCSV()">
+            <i class="bi bi-file-earmark-arrow-down-fill"></i>
+            <span>Export Bank CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin Aggregate KPI Row -->
+      <div class="admin-aggregate-row">
+        <div class="agg-card">
+          <span class="agg-label">EMPLOYEES ON PAYROLL</span>
+          <span class="agg-val">{{ adminRecords.length }} Active</span>
+        </div>
+        <div class="agg-card">
+          <span class="agg-label">TOTAL GROSS PAYROLL</span>
+          <span class="agg-val">₹{{ totalAdminGross | number:'1.0-0' }}</span>
+        </div>
+        <div class="agg-card">
+          <span class="agg-label">TOTAL STATUTORY DEDUCTIONS</span>
+          <span class="agg-val text-red">₹{{ totalAdminDeductions | number:'1.0-0' }}</span>
+        </div>
+        <div class="agg-card highlight-agg">
+          <span class="agg-label">TOTAL NET DISBURSED</span>
+          <span class="agg-val text-green">₹{{ totalAdminNet | number:'1.0-0' }}</span>
+        </div>
+      </div>
+
+      <!-- Roster Table -->
+      <div class="table-responsive">
+        <table class="payroll-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Gross Pay</th>
+              <th>Deductions</th>
+              <th>LOP Days</th>
+              <th>Net Disbursed</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of filteredAdminRecords">
+              <td>
+                <div class="user-cell">
+                  <div class="user-avatar-circle">{{ r.employeeName.charAt(0) }}</div>
+                  <div class="user-meta">
+                    <span class="cell-name">{{ r.employeeName }}</span>
+                    <span class="cell-code">{{ r.empId }} &bull; {{ r.designation }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>{{ r.departmentName }}</td>
+              <td><strong>₹{{ r.grossPay | number:'1.0-0' }}</strong></td>
+              <td class="text-red">₹{{ r.totalDeductions | number:'1.0-0' }}</td>
+              <td>
+                <span class="lop-pill" [class.has-lop]="r.lossOfPayDays > 0">
+                  {{ r.lossOfPayDays }} days
+                </span>
+              </td>
+              <td><strong class="text-green">₹{{ r.netPay | number:'1.0-0' }}</strong></td>
+              <td>
+                <span class="chip-status" [class.chip-paid]="r.status === 'PAID'">{{ r.status }}</span>
+              </td>
+              <td>
+                <button class="btn-action-view" (click)="openPayslipModal(r)" title="View Printable Payslip">
+                  <i class="bi bi-file-earmark-pdf"></i> Payslip
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRINTABLE / EXPORTABLE A4 PAYSLIP MODAL -->
+  <div class="modal-overlay" *ngIf="showPayslipModal && modalPayslip" (click)="closePayslipModal()">
+    <div class="payslip-modal-container" (click)="$event.stopPropagation()">
+      <!-- Floating Modal Action Toolbar (hidden on print) -->
+      <div class="modal-toolbar">
+        <div class="tb-title">
+          <i class="bi bi-patch-check-fill text-primary"></i>
+          <span>Official Corporate Payslip Preview</span>
+        </div>
+        <div class="tb-actions">
+          <button class="btn-print" (click)="printPayslip()">
+            <i class="bi bi-printer-fill"></i> Print / Save as PDF
+          </button>
+          <button class="btn-close-modal" (click)="closePayslipModal()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- THE OFFICIAL PRINTABLE A4 PAYSLIP DOCUMENT -->
+      <div class="printable-payslip-doc" id="printablePayslip">
+        <!-- Corporate Header -->
+        <div class="doc-header">
+          <div class="doc-brand">
+            <div class="doc-logo"><i class="bi bi-buildings-fill"></i></div>
+            <div class="doc-company-info">
+              <h2>EMS ENTERPRISE TECHNOLOGIES PRIVATE LIMITED</h2>
+              <p>Cyber City Tech Park, Tower B, Level 14, Financial District</p>
+              <p>CIN: U72200TG2022PTC154210 &bull; GSTIN: 36AAACE1234F1Z5</p>
+            </div>
+          </div>
+          <div class="doc-payslip-stamp">
+            <span class="stamp-title">PAYSLIP</span>
+            <span class="stamp-period">{{ modalPayslip.monthName | uppercase }}</span>
+          </div>
+        </div>
+
+        <div class="doc-divider"></div>
+
+        <!-- Employee Credentials Grid -->
+        <div class="doc-employee-grid">
+          <div class="doc-emp-col">
+            <div class="doc-field"><span class="df-lbl">Employee ID:</span> <span class="df-val">{{ modalPayslip.empId }}</span></div>
+            <div class="doc-field"><span class="df-lbl">Employee Name:</span> <span class="df-val"><strong>{{ modalPayslip.employeeName }}</strong></span></div>
+            <div class="doc-field"><span class="df-lbl">Department:</span> <span class="df-val">{{ modalPayslip.departmentName }}</span></div>
+            <div class="doc-field"><span class="df-lbl">Designation:</span> <span class="df-val">{{ modalPayslip.designation }}</span></div>
+          </div>
+
+          <div class="doc-emp-col">
+            <div class="doc-field"><span class="df-lbl">Bank Name:</span> <span class="df-val">{{ modalPayslip.bankName || 'HDFC Bank Ltd.' }}</span></div>
+            <div class="doc-field"><span class="df-lbl">Bank A/C No:</span> <span class="df-val">{{ modalPayslip.accountNumber || '50100492812' }}</span></div>
+            <div class="doc-field"><span class="df-lbl">PAN Number:</span> <span class="df-val">{{ modalPayslip.panNumber || 'ABCDE1234F' }}</span></div>
+            <div class="doc-field"><span class="df-lbl">Disbursal Ref:</span> <span class="df-val">{{ modalPayslip.transactionReference || 'TXN-DISBURSED' }}</span></div>
+          </div>
+
+          <div class="doc-emp-col">
+            <div class="doc-field"><span class="df-lbl">Days in Month:</span> <span class="df-val">{{ modalPayslip.totalDaysInMonth }}</span></div>
+            <div class="doc-field"><span class="df-lbl">Days Worked:</span> <span class="df-val">{{ modalPayslip.daysWorked }}</span></div>
+            <div class="doc-field"><span class="df-lbl">Paid Leaves:</span> <span class="df-val">{{ modalPayslip.paidLeaves }}</span></div>
+            <div class="doc-field"><span class="df-lbl">Loss of Pay (LOP):</span> <span class="df-val">{{ modalPayslip.lossOfPayDays }} days</span></div>
+          </div>
+        </div>
+
+        <!-- Earnings & Deductions Dual Tables -->
+        <table class="doc-salary-table">
+          <thead>
+            <tr>
+              <th colspan="2" class="th-earnings">EARNINGS</th>
+              <th colspan="2" class="th-deductions">DEDUCTIONS</th>
+            </tr>
+            <tr class="sub-th">
+              <th>Component</th>
+              <th class="text-right">Amount (₹)</th>
+              <th>Component</th>
+              <th class="text-right">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Basic Salary</td>
+              <td class="text-right">{{ modalPayslip.basicPay | number:'1.2-2' }}</td>
+              <td>Provident Fund (PF)</td>
+              <td class="text-right">{{ modalPayslip.pfDeduction | number:'1.2-2' }}</td>
+            </tr>
+            <tr>
+              <td>House Rent Allowance (HRA)</td>
+              <td class="text-right">{{ modalPayslip.hra | number:'1.2-2' }}</td>
+              <td>Professional Tax (PT)</td>
+              <td class="text-right">{{ modalPayslip.professionalTax | number:'1.2-2' }}</td>
+            </tr>
+            <tr>
+              <td>Special Allowance</td>
+              <td class="text-right">{{ modalPayslip.specialAllowance | number:'1.2-2' }}</td>
+              <td>Income Tax (TDS)</td>
+              <td class="text-right">{{ modalPayslip.tdsDeduction | number:'1.2-2' }}</td>
+            </tr>
+            <tr>
+              <td>Conveyance & Medical Allowance</td>
+              <td class="text-right">{{ modalPayslip.otherAllowances | number:'1.2-2' }}</td>
+              <td>Loss of Pay (LOP)</td>
+              <td class="text-right">{{ modalPayslip.lossOfPayDeduction | number:'1.2-2' }}</td>
+            </tr>
+            <tr class="total-summary-row">
+              <td><strong>TOTAL GROSS EARNINGS</strong></td>
+              <td class="text-right font-bold">₹{{ modalPayslip.grossPay | number:'1.2-2' }}</td>
+              <td><strong>TOTAL DEDUCTIONS</strong></td>
+              <td class="text-right font-bold">₹{{ modalPayslip.totalDeductions | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Net Disbursal Callout Box -->
+        <div class="doc-net-box">
+          <div class="net-words">
+            <span class="nw-label">Net Amount in Words:</span>
+            <span class="nw-text">{{ numberToWords(modalPayslip.netPay) }}</span>
+          </div>
+          <div class="net-numeric">
+            <span class="nn-label">NET TAKE-HOME SALARY</span>
+            <span class="nn-amount">₹{{ modalPayslip.netPay | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <!-- Corporate Authorization Seal & Signatures -->
+        <div class="doc-signatures">
+          <div class="sig-box">
+            <p>Prepared By: EMS Auto-Payroll Engine</p>
+            <span class="sig-tag">Automated Verification: PASSED</span>
+          </div>
+
+          <div class="auth-seal">
+            <div class="seal-circle">
+              <i class="bi bi-shield-fill-check"></i>
+              <span>EMS CORP</span>
+              <span class="seal-sub">VERIFIED</span>
+            </div>
+          </div>
+
+          <div class="sig-box text-right">
+            <div class="sig-line"></div>
+            <p><strong>Authorized Signatory</strong></p>
+            <span>Director of Human Resources & Finance</span>
+          </div>
+        </div>
+
+        <div class="doc-disclaimer">
+          <p>This is a computer-generated official enterprise statement. No physical signature is required.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

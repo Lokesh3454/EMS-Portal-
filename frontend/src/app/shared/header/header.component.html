@@ -1,0 +1,118 @@
+<header class="top-navbar">
+  <div class="navbar-left">
+    <button class="nav-toggle-btn" (click)="toggleSidebar.emit()" title="Toggle Sidebar">
+      <i class="bi bi-list"></i>
+    </button>
+    <div class="system-status-chip">
+      <span class="pulse-indicator"></span>
+      <span class="system-name">EMS Cloud Portal</span>
+      <span class="system-ver">v2.1</span>
+    </div>
+    <div class="live-clock-pill">
+      <i class="bi bi-clock-history"></i>
+      <span>{{ currentTime }}</span>
+    </div>
+  </div>
+
+  <div class="navbar-right">
+    <!-- Quick Nav Links -->
+    <div class="quick-nav-links">
+      <a routerLink="/attendance" routerLinkActive="active-quick" class="quick-link" title="Clock-In / Attendance">
+        <i class="bi bi-stopwatch"></i>
+        <span>Attendance</span>
+      </a>
+      <a routerLink="/leaves" routerLinkActive="active-quick" class="quick-link" title="Leave Balances & Requests">
+        <i class="bi bi-calendar2-week"></i>
+        <span>Leaves</span>
+      </a>
+      <a routerLink="/manager" routerLinkActive="active-quick" class="quick-link" *ngIf="authService.canAccessManagerPortal()" title="Group Manager Portal">
+        <i class="bi bi-briefcase"></i>
+        <span>Manager</span>
+      </a>
+      <a routerLink="/payroll" routerLinkActive="active-quick" class="quick-link" title="Compensation & Payslips">
+        <i class="bi bi-wallet2"></i>
+        <span>Payroll</span>
+      </a>
+      <a routerLink="/performance" routerLinkActive="active-quick" class="quick-link" title="Performance & OKRs">
+        <i class="bi bi-award-fill"></i>
+        <span>PMS</span>
+      </a>
+    </div>
+
+    <!-- Notification Bell -->
+    <div class="notification-wrapper">
+      <button 
+        class="bell-btn" 
+        [class.has-unread]="unreadCount > 0"
+        (click)="toggleNotificationDropdown($event)"
+        title="Notifications">
+        <i class="bi bi-bell-fill"></i>
+        <span class="unread-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
+      </button>
+
+      <!-- Dropdown Panel -->
+      <div class="notification-dropdown" *ngIf="showNotifications" (click)="$event.stopPropagation()">
+        <div class="dropdown-header">
+          <div class="dh-title">
+            <i class="bi bi-bell"></i>
+            <span>Notifications</span>
+            <span class="unread-pill" *ngIf="unreadCount > 0">{{ unreadCount }} new</span>
+          </div>
+          <button class="btn-mark-read" (click)="markAllAsRead($event)" *ngIf="unreadCount > 0">
+            <i class="bi bi-check2-all"></i> Mark all read
+          </button>
+        </div>
+
+        <div class="notifications-list">
+          <div 
+            *ngFor="let n of notifications" 
+            class="notif-item" 
+            [class.unread]="!n.read"
+            (click)="openNotification(n)">
+            <div class="notif-icon" [style.background-color]="n.iconBg">
+              <i class="bi" [ngClass]="n.icon"></i>
+            </div>
+            <div class="notif-body">
+              <div class="notif-title-row">
+                <span class="n-title">{{ n.title }}</span>
+                <span class="n-unread-dot" *ngIf="!n.read"></span>
+              </div>
+              <p class="n-msg">{{ n.message }}</p>
+              <span class="n-time"><i class="bi bi-clock"></i> {{ n.time }}</span>
+            </div>
+          </div>
+
+          <div class="empty-notif" *ngIf="notifications.length === 0">
+            <i class="bi bi-bell-slash"></i>
+            <p>No new notifications right now</p>
+          </div>
+        </div>
+
+        <div class="dropdown-footer">
+          <span>Enterprise Notification Center</span>
+          <button class="btn-close-dropdown" (click)="showNotifications = false">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-divider"></div>
+
+    <!-- User Profile Pill -->
+    <div class="user-profile-menu" (click)="goToProfile()" title="View Your Profile">
+      <div class="user-avatar">
+        {{ currentUser?.fullName?.charAt(0) || 'U' }}
+      </div>
+      <div class="user-info-text">
+        <span class="user-name">{{ currentUser?.fullName || 'EMS User' }}</span>
+        <span class="user-role-badge" [class.admin-role]="isAdmin">
+          {{ isAdmin ? 'Admin' : 'Employee' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Direct Logout -->
+    <button class="nav-logout-btn" (click)="logout()" title="Sign Out">
+      <i class="bi bi-box-arrow-right"></i>
+    </button>
+  </div>
+</header>
