@@ -52,10 +52,43 @@ public class SecurityConfig {
             .cors(cors -> cors.configure(http))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // Public Auth & preflight
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .anyRequest().authenticated()
+                // Static assets & Angular SPA routes
+                .requestMatchers(
+                    "/",
+                    "/index.html",
+                    "/*.js",
+                    "/*.css",
+                    "/*.ico",
+                    "/*.png",
+                    "/*.jpg",
+                    "/*.jpeg",
+                    "/*.svg",
+                    "/*.woff",
+                    "/*.woff2",
+                    "/*.ttf",
+                    "/assets/**",
+                    "/login",
+                    "/dashboard",
+                    "/attendance",
+                    "/leaves",
+                    "/manager",
+                    "/payroll",
+                    "/performance",
+                    "/documents",
+                    "/recruitment",
+                    "/employees",
+                    "/employees/**",
+                    "/departments",
+                    "/departments/**",
+                    "/my-profile"
+                ).permitAll()
+                // All other API endpoints require JWT authentication
+                .requestMatchers("/api/**").authenticated()
+                .anyRequest().permitAll()
             )
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
