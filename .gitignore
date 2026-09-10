@@ -4,7 +4,6 @@ target/
 dist/
 **/dist/
 *.class
-backend/src/main/resources/static/
 
 # Package files
 *.zip
