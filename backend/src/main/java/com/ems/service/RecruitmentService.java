@@ -31,6 +31,7 @@ public class RecruitmentService {
     private final PasswordEncoder passwordEncoder;
     private final PayrollService payrollService;
     private final DocumentService documentService;
+    private final EmployeeService employeeService;
 
     @Transactional
     public List<JobPostingDto> getAllJobs() {
@@ -125,8 +126,7 @@ public class RecruitmentService {
         String lastName = names.length > 1 ? names[1] : "Staff";
 
         // 3. Generate Next Emp ID
-        long totalEmp = employeeRepository.count();
-        String empCode = String.format("EMP%03d", totalEmp + 1);
+        String empCode = employeeService.generateEmpId();
 
         // 4. Create Employee Record
         Employee employee = new Employee();
@@ -135,7 +135,7 @@ public class RecruitmentService {
         employee.setLastName(lastName);
         employee.setEmail(email);
         employee.setPhone(candidate.getPhone() != null ? candidate.getPhone() : "+91 98765 00000");
-        employee.setGender(Employee.Gender.MALE);
+        employee.setGender(Employee.Gender.OTHER);
         employee.setDepartment(candidate.getJobPosting().getDepartment());
         employee.setDesignation(candidate.getJobPosting().getTitle());
         employee.setDateOfJoining(LocalDate.now());

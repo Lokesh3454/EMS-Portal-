@@ -36,6 +36,11 @@ public class AuthController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody Map<String, String> request) {
 
+        if (userDetails == null) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Authentication required"));
+        }
+
         String currentPassword = request.get("currentPassword");
         String newPassword = request.get("newPassword");
 
@@ -56,7 +61,11 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<?>> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(ApiResponse.success("User fetched", Map.of("email", userDetails.getUsername(),
-                "role", userDetails.getAuthorities().iterator().next().getAuthority())));
+        if (userDetails == null) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Authentication required"));
+        }
+        String role = userDetails.getAuthorities().isEmpty() ? "" : userDetails.getAuthorities().iterator().next().getAuthority();
+        return ResponseEntity.ok(ApiResponse.success("User fetched", Map.of("email", userDetails.getUsername(), "role", role)));
     }
 }

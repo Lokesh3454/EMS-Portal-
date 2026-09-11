@@ -5,7 +5,9 @@ import com.ems.dto.AiResponseDto;
 import com.ems.dto.LeaveBalanceDto;
 import com.ems.dto.PayrollRecordDto;
 import com.ems.entity.Employee;
+import com.ems.entity.Role;
 import com.ems.repository.EmployeeRepository;
+import com.ems.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,12 +22,24 @@ import java.util.List;
 public class AiAssistantService {
 
     private final EmployeeRepository employeeRepository;
+    private final UserRepository userRepository;
     private final LeaveService leaveService;
     private final PayrollService payrollService;
 
     public AiResponseDto processQuery(String userEmail, AiQueryDto queryDto) {
-        String q = (queryDto.getQuery() != null ? queryDto.getQuery().toLowerCase().trim() : "");
-        Employee emp = employeeRepository.findByEmail(userEmail).orElse(null);
+        String q = (queryDto != null && queryDto.getQuery() != null) ? queryDto.getQuery().toLowerCase().trim() : "";
+        Employee emp = (userEmail != null) ? employeeRepository.findByEmail(userEmail).orElse(null) : null;
+
+        boolean isPrivilegedUser = false;
+        if (userEmail != null) {
+            isPrivilegedUser = userRepository.findByEmail(userEmail)
+                    .map(u -> u.getRole() != null && (
+                            u.getRole().getName() == Role.RoleName.ROLE_ADMIN ||
+                            u.getRole().getName() == Role.RoleName.ROLE_HR ||
+                            u.getRole().getName() == Role.RoleName.ROLE_MANAGER
+                    ))
+                    .orElse(false);
+        }
 
         String answer;
         String intent = "GENERAL_HR";
@@ -111,11 +125,20 @@ public class AiAssistantService {
 
         } else if (q.contains("hiring") || q.contains("recruit") || q.contains("job") || q.contains("candidate") || q.contains("interview")) {
             intent = "RECRUITMENT_INQUIRY";
-            actions.add("/recruitment");
-            suggestions.add("View open engineering vacancies");
-            suggestions.add("Check candidate interview pipeline");
-
-            answer = "Our Recruitment & ATS suite tracks open requisitions across IT, HR, and Finance. Candidates progress through Screening, Technical Interview, Offered, and 1-Click Onboarding directly into the Employee Directory.";
+            if (isPrivilegedUser) {
+                actions.add("/recruitment");
+                suggestions.add("View open engineering vacancies");
+                suggestions.add("Check candidate interview pipeline");
+                answer = "Our Recruitment & ATS suite tracks open requisitions across IT, HR, and Finance. Candidates progress through Screening, Technical Interview, Offered, and 1-Click Onboarding directly into the Employee Directory.";
+            } else {
+                actions.add("/documents");
+                suggestions.add("View employee handbook in Document Vault");
+                suggestions.add("What is the company probation policy?");
+                suggestions.add("How many leaves do I have remaining?");
+                answer = "Company job openings and hiring requisitions are managed by Department Managers and the Talent Acquisition HR team.\n" +
+                        "• Internal job transfer and vacancy notices are published on the corporate portal.\n" +
+                        "• For employee referral programs or role transfer guidelines, please check your Document Vault or contact HR at hr@ems.com.";
+            }
 
         } else if (q.contains("probation") || q.contains("notice") || q.contains("resignation") || q.contains("separation") || q.contains("exit")) {
             intent = "POLICY_INQUIRY";

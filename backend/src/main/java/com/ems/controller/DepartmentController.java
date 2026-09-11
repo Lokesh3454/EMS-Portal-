@@ -17,6 +17,7 @@ import java.util.List;
 public class DepartmentController {
 
     private final DepartmentRepository departmentRepository;
+    private final com.ems.repository.EmployeeRepository employeeRepository;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<Department>>> getAllDepartments() {
@@ -48,6 +49,9 @@ public class DepartmentController {
     public ResponseEntity<ApiResponse<?>> deleteDepartment(@PathVariable Long id) {
         Department dept = departmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+        if (employeeRepository.countByDepartmentId(id) > 0) {
+            throw new IllegalArgumentException("Cannot delete department because employees are currently assigned to it. Please reassign them first.");
+        }
         departmentRepository.delete(dept);
         return ResponseEntity.ok(ApiResponse.success("Department deleted"));
     }

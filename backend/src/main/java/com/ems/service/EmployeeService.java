@@ -68,7 +68,11 @@ public class EmployeeService {
                 .orElse(null);
 
         Employee adminEmp = new Employee();
-        adminEmp.setEmpId("ADM001");
+        String adminCode = "ADM001";
+        if (employeeRepository.existsByEmpId(adminCode)) {
+            adminCode = generateEmpId();
+        }
+        adminEmp.setEmpId(adminCode);
         adminEmp.setFirstName("System");
         adminEmp.setLastName("Administrator");
         adminEmp.setEmail(user.getEmail());
@@ -89,7 +93,11 @@ public class EmployeeService {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
             Employee e = new Employee();
-            e.setEmpId("ADM001");
+            String code = "ADM001";
+            if (employeeRepository.existsByEmpId(code)) {
+                code = generateEmpId();
+            }
+            e.setEmpId(code);
             e.setFirstName("System");
             e.setLastName("Administrator");
             e.setEmail(email);
@@ -202,8 +210,13 @@ public class EmployeeService {
         }
     }
 
-    private String generateEmpId() {
-        long count = employeeRepository.count() + 1;
-        return String.format("EMP%03d", count);
+    public String generateEmpId() {
+        long nextNum = employeeRepository.count() + 1;
+        String candidate = String.format("EMP%03d", nextNum);
+        while (employeeRepository.existsByEmpId(candidate)) {
+            nextNum++;
+            candidate = String.format("EMP%03d", nextNum);
+        }
+        return candidate;
     }
 }

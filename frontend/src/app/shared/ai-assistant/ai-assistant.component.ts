@@ -1,5 +1,6 @@
 import { Component, OnInit, ElementRef, ViewChild, AfterViewChecked } from '@angular/core';
 import { Router } from '@angular/router';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { AiService } from '../../core/services/ai.service';
 import { AuthService } from '../../core/services/auth.service';
 import { AiChatMessage } from '../../core/models/ai.model';
@@ -16,13 +17,14 @@ export class AiAssistantComponent implements OnInit, AfterViewChecked {
   inputText = '';
   isThinking = false;
   messages: AiChatMessage[] = [];
+  copiedMsgId: string | null = null;
 
   quickSuggestions: string[] = [
     'How many casual and sick leaves do I have remaining?',
     'Explain the tax deductions and allowances on my payslip',
     'What is the company probation and notice period policy?',
     'How do I view and sign my employment documents?',
-    'What open job positions and candidates are in our ATS?'
+    'What are the official corporate holidays in 2026?'
   ];
 
   currentUser: any = null;
@@ -30,12 +32,26 @@ export class AiAssistantComponent implements OnInit, AfterViewChecked {
   constructor(
     private aiService: AiService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private sanitizer: DomSanitizer
   ) {}
 
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
     const name = this.currentUser?.fullName || this.currentUser?.name || 'there';
+
+    // Tailor quick suggestions based on user role
+    this.quickSuggestions = [
+      'How many casual and sick leaves do I have remaining?',
+      'Explain the tax deductions and allowances on my payslip',
+      'What is the company probation and notice period policy?',
+      'How do I view and sign my employment documents?',
+      'What are the official corporate holidays in 2026?'
+    ];
+
+    if (this.authService.canAccessManagerPortal()) {
+      this.quickSuggestions.push('What open job positions and candidates are in our ATS?');
+    }
 
     // Welcome greeting
     this.messages.push({
@@ -112,6 +128,10 @@ export class AiAssistantComponent implements OnInit, AfterViewChecked {
   }
 
   navigateAction(actionUrl: string): void {
+    if (actionUrl === '/recruitment' && !this.authService.canAccessManagerPortal()) {
+      this.router.navigate(['/documents']);
+      return;
+    }
     if (actionUrl.startsWith('/')) {
       this.router.navigateByUrl(actionUrl);
     } else {
@@ -121,6 +141,75 @@ export class AiAssistantComponent implements OnInit, AfterViewChecked {
     if (window.innerWidth < 640) {
       this.isOpen = false;
     }
+  }
+
+  getActionLabel(action: string): string {
+    const clean = (action || '').replace(/^\//, '').toLowerCase();
+    switch (clean) {
+      case 'leaves': return 'Open Leave Management';
+      case 'payroll': return 'View Payslip & Payroll';
+      case 'performance': return 'Open Performance Reviews';
+      case 'attendance': return 'View Attendance Shifts';
+      case 'documents': return 'Open Document Vault';
+      case 'recruitment': return 'Go to Recruitment ATS';
+      case 'dashboard': return 'Go to Dashboard';
+      default: return `Navigate to ${clean.toUpperCase()}`;
+    }
+  }
+
+  getActionIcon(action: string): string {
+    const clean = (action || '').replace(/^\//, '').toLowerCase();
+    switch (clean) {
+      case 'leaves': return 'bi bi-calendar-check-fill text-emerald';
+      case 'payroll': return 'bi bi-wallet2 text-blue';
+      case 'performance': return 'bi bi-award-fill text-purple';
+      case 'attendance': return 'bi bi-clock-history text-amber';
+      case 'documents': return 'bi bi-file-earmark-lock-fill text-indigo';
+      case 'recruitment': return 'bi bi-person-lines-fill text-rose';
+      default: return 'bi bi-arrow-right-circle-fill text-indigo';
+    }
+  }
+
+  copyMessage(msg: AiChatMessage): void {
+    if (!msg?.text) return;
+    const cleanText = msg.text.replace(/\*\*/g, '');
+    navigator.clipboard.writeText(cleanText).then(() => {
+      this.copiedMsgId = msg.id;
+      setTimeout(() => {
+        if (this.copiedMsgId === msg.id) {
+          this.copiedMsgId = null;
+        }
+      }, 2000);
+    }).catch(() => {});
+  }
+
+  formatMessage(text: string): SafeHtml {
+    if (!text) return '';
+
+    // 1. Escape HTML entities
+    let formatted = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // 2. Bold markdown: **bold**
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    // 3. Bullet list items: • item or * item
+    formatted = formatted.replace(/^[ \t]*[•*]\s*(.+)$/gm, 
+      '<div class="ai-bullet-row"><i class="bi bi-check-circle-fill ai-bullet-icon"></i><span>$1</span></div>');
+
+    // 4. Numbered list items: 1. item
+    formatted = formatted.replace(/^[ \t]*(\d+)\.\s*(.+)$/gm,
+      '<div class="ai-bullet-row"><span class="ai-num-badge">$1</span><span>$2</span></div>');
+
+    // 5. Clean newlines around divs and convert remaining newlines
+    formatted = formatted.replace(/<\/div>\n/g, '</div>');
+    formatted = formatted.replace(/\n<div/g, '<div');
+    formatted = formatted.replace(/\n\n+/g, '<div class="ai-para-break"></div>');
+    formatted = formatted.replace(/\n/g, '<br>');
+
+    return this.sanitizer.bypassSecurityTrustHtml(formatted);
   }
 
   clearChat(): void {

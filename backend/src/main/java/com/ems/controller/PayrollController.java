@@ -71,8 +71,12 @@ public class PayrollController {
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<PayrollRecordDto>> getPayslipById(@PathVariable Long id) {
-        PayrollRecordDto record = payrollService.getPayslipById(id);
+    public ResponseEntity<ApiResponse<PayrollRecordDto>> getPayslipById(
+            @PathVariable Long id,
+            Authentication authentication) {
+        boolean isPrivileged = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
+        PayrollRecordDto record = payrollService.getPayslipById(id, authentication.getName(), isPrivileged);
         return ResponseEntity.ok(ApiResponse.success("Fetched payslip details", record));
     }
 

@@ -29,7 +29,8 @@ export class ExportService {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `${filename}.csv`);
+    const cleanName = filename.toLowerCase().endsWith('.csv') ? filename : `${filename}.csv`;
+    link.setAttribute('download', cleanName);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();

@@ -41,7 +41,19 @@ public class AttendanceService {
 
         Optional<Attendance> existing = attendanceRepository.findByEmployeeAndDate(employee, today);
         if (existing.isPresent()) {
-            throw new IllegalArgumentException("You have already clocked in today at " + existing.get().getClockInTime());
+            Attendance att = existing.get();
+            if (att.getClockInTime() != null) {
+                throw new IllegalArgumentException("You have already clocked in today at " + att.getClockInTime());
+            }
+            Attendance.AttendanceStatus status = now.isAfter(STANDARD_START_TIME) 
+                    ? Attendance.AttendanceStatus.LATE 
+                    : Attendance.AttendanceStatus.PRESENT;
+            att.setClockInTime(now);
+            att.setStatus(status);
+            if (notes != null && !notes.isBlank()) {
+                att.setNotes(att.getNotes() != null ? att.getNotes() + " | " + notes : notes);
+            }
+            return toDto(attendanceRepository.save(att));
         }
 
         Attendance.AttendanceStatus status = now.isAfter(STANDARD_START_TIME) 
@@ -68,6 +80,10 @@ public class AttendanceService {
 
         Attendance attendance = attendanceRepository.findByEmployeeAndDate(employee, today)
                 .orElseThrow(() -> new IllegalArgumentException("No clock-in record found for today. Please clock in first."));
+
+        if (attendance.getClockInTime() == null) {
+            throw new IllegalArgumentException("No clock-in record found for today. Please clock in first.");
+        }
 
         if (attendance.getClockOutTime() != null) {
             throw new IllegalArgumentException("You have already clocked out today at " + attendance.getClockOutTime());
@@ -150,7 +166,16 @@ public class AttendanceService {
                     .orElse(null);
 
             Employee adminEmp = new Employee();
-            adminEmp.setEmpId("ADM001");
+            String code = "ADM001";
+            if (employeeRepository.existsByEmpId(code)) {
+                long next = employeeRepository.count() + 1;
+                code = String.format("EMP%03d", next);
+                while (employeeRepository.existsByEmpId(code)) {
+                    next++;
+                    code = String.format("EMP%03d", next);
+                }
+            }
+            adminEmp.setEmpId(code);
             adminEmp.setFirstName("System");
             adminEmp.setLastName("Administrator");
             adminEmp.setEmail(user.getEmail());

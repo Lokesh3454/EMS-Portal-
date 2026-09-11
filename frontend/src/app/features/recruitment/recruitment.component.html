@@ -14,26 +14,26 @@
     <div class="header-actions">
       <div class="view-switch-tabs">
         <button class="view-btn" [class.active]="activeView === 'pipeline'" (click)="activeView = 'pipeline'">
-          <i class="fas fa-stream"></i> Candidates Pipeline
+          <i class="bi bi-kanban"></i> Candidates Pipeline
         </button>
         <button class="view-btn" [class.active]="activeView === 'jobs'" (click)="activeView = 'jobs'">
-          <i class="fas fa-briefcase"></i> Job Requisitions ({{ jobs.length }})
+          <i class="bi bi-briefcase-fill"></i> Job Requisitions ({{ jobs.length }})
         </button>
       </div>
       <button *ngIf="canManage" class="btn btn-primary" (click)="openNewJob()">
-        <i class="fas fa-plus"></i> Post Requisition
+        <i class="bi bi-plus-lg"></i> Post Requisition
       </button>
     </div>
   </div>
 
   <!-- Notification Banners -->
   <div *ngIf="actionMessage" class="alert alert-success">
-    <i class="fas fa-check-circle"></i>
+    <i class="bi bi-check-circle-fill"></i>
     <span>{{ actionMessage }}</span>
     <button class="alert-close" (click)="actionMessage = ''">&times;</button>
   </div>
   <div *ngIf="errorMessage" class="alert alert-danger">
-    <i class="fas fa-exclamation-triangle"></i>
+    <i class="bi bi-exclamation-triangle-fill"></i>
     <span>{{ errorMessage }}</span>
     <button class="alert-close" (click)="errorMessage = ''">&times;</button>
   </div>
@@ -49,7 +49,7 @@
         <div class="kpi-img-frame">
           <img src="assets/images/ats-active-jobs.jpg" alt="Active Requisitions" class="kpi-topic-img" />
         </div>
-        <span class="kpi-topic-tag tag-jobs"><i class="fas fa-briefcase"></i> Requisitions</span>
+        <span class="kpi-topic-tag tag-jobs"><i class="bi bi-briefcase-fill"></i> Requisitions</span>
       </div>
       <div class="kpi-info">
         <span class="kpi-label">Active Requisitions</span>
@@ -67,7 +67,7 @@
         <div class="kpi-img-frame">
           <img src="assets/images/ats-candidates.jpg" alt="Active Candidates" class="kpi-topic-img" />
         </div>
-        <span class="kpi-topic-tag tag-candidates"><i class="fas fa-users"></i> Talent Pool</span>
+        <span class="kpi-topic-tag tag-candidates"><i class="bi bi-people-fill"></i> Talent Pool</span>
       </div>
       <div class="kpi-info">
         <span class="kpi-label">Active Candidates</span>
@@ -85,7 +85,7 @@
         <div class="kpi-img-frame">
           <img src="assets/images/ats-interview.jpg" alt="In Interview Stage" class="kpi-topic-img" />
         </div>
-        <span class="kpi-topic-tag tag-interview"><i class="fas fa-calendar-check"></i> Evaluation</span>
+        <span class="kpi-topic-tag tag-interview"><i class="bi bi-calendar-check-fill"></i> Evaluation</span>
       </div>
       <div class="kpi-info">
         <span class="kpi-label">In Interview Stage</span>
@@ -103,7 +103,7 @@
         <div class="kpi-img-frame">
           <img src="assets/images/ats-hired.jpg" alt="Hired / Ready to Onboard" class="kpi-topic-img" />
         </div>
-        <span class="kpi-topic-tag tag-hired"><i class="fas fa-trophy"></i> 1-Click Onboard</span>
+        <span class="kpi-topic-tag tag-hired"><i class="bi bi-trophy-fill"></i> 1-Click Onboard</span>
       </div>
       <div class="kpi-info">
         <span class="kpi-label">Hired / Ready to Onboard</span>
@@ -116,7 +116,7 @@
   <!-- Active Filter Response Banner -->
   <div *ngIf="activeKpiFilter !== 'ALL' || selectedStage !== 'ALL' || selectedJobId || searchQuery" class="active-filter-bar glass-panel">
     <div class="active-filter-label">
-      <i class="fas fa-filter text-indigo"></i>
+      <i class="bi bi-funnel-fill text-indigo"></i>
       <span>Showing Filtered Results: 
         <strong *ngIf="activeKpiFilter === 'JOBS'">💼 Active Job Requisitions</strong>
         <strong *ngIf="activeKpiFilter === 'INTERVIEW'">🎙️ Candidates in Interview Stage</strong>
@@ -128,7 +128,7 @@
       </span>
     </div>
     <button class="btn btn-sm btn-outline clear-filter-btn" (click)="clearFilters()">
-      <i class="fas fa-times"></i> Clear Filter &amp; Show All
+      <i class="bi bi-x-lg"></i> Clear Filter &amp; Show All
     </button>
   </div>
 
@@ -172,7 +172,7 @@
 
       <!-- Search Box -->
       <div class="search-box">
-        <i class="fas fa-search"></i>
+        <i class="bi bi-search"></i>
         <input type="text" [(ngModel)]="searchQuery" placeholder="Search candidate, skill, company..." />
         <button *ngIf="searchQuery" class="clear-search" (click)="searchQuery = ''">&times;</button>
       </div>
@@ -186,7 +186,7 @@
 
     <!-- Empty State -->
     <div *ngIf="!loading && filteredCandidates.length === 0" class="empty-state glass-panel">
-      <i class="fas fa-user-slash empty-icon"></i>
+      <i class="bi bi-person-x-fill empty-icon"></i>
       <h3>No candidates found</h3>
       <p>No candidates match your current filter selection or stage.</p>
       <button class="btn btn-secondary" (click)="filterByStage('ALL'); selectedJobId = null; searchQuery = ''">
@@ -205,7 +205,7 @@
           <div class="candidate-headline">
             <h3 class="candidate-name">{{ candidate.fullName }}</h3>
             <span class="candidate-applied-job">
-              <i class="fas fa-briefcase"></i> {{ candidate.jobTitle }}
+              <i class="bi bi-briefcase-fill"></i> {{ candidate.jobTitle }}
             </span>
           </div>
 
@@ -217,19 +217,19 @@
         <!-- Candidate Details -->
         <div class="candidate-body">
           <div class="candidate-field">
-            <i class="far fa-envelope"></i>
+            <i class="bi bi-envelope-fill"></i>
             <a [href]="'mailto:' + candidate.email">{{ candidate.email }}</a>
           </div>
           <div class="candidate-field">
-            <i class="fas fa-phone-alt"></i>
+            <i class="bi bi-telephone-fill"></i>
             <span>{{ candidate.phone }}</span>
           </div>
           <div class="candidate-field">
-            <i class="fas fa-building"></i>
+            <i class="bi bi-building"></i>
             <span>Current: <strong>{{ candidate.currentCompany || 'Freelance / Open to Work' }}</strong> ({{ candidate.experienceYears }} yrs exp)</span>
           </div>
           <div class="candidate-field">
-            <i class="far fa-calendar-alt"></i>
+            <i class="bi bi-calendar3"></i>
             <span>Applied: {{ candidate.appliedDate | date:'mediumDate' }}</span>
           </div>
 
@@ -238,14 +238,14 @@
             <span class="rating-label">ATS Score:</span>
             <span class="stars">
               <i *ngFor="let star of [1,2,3,4,5]" 
-                 class="fas fa-star" 
+                 class="bi bi-star-fill" 
                  [class.active]="star <= (candidate.rating || 4)"></i>
             </span>
           </div>
 
           <!-- Interview Feedback if available -->
           <div *ngIf="candidate.interviewFeedback" class="feedback-snippet">
-            <i class="fas fa-comment-dots"></i>
+            <i class="bi bi-chat-dots-fill"></i>
             <em>"{{ candidate.interviewFeedback }}"</em>
           </div>
         </div>
@@ -255,13 +255,13 @@
           <!-- Advance Stage Button -->
           <div class="stage-actions" *ngIf="canManage">
             <button class="btn btn-sm btn-outline" (click)="promptStageChange(candidate, 'INTERVIEW')">
-              <i class="fas fa-comments"></i> Interview
+              <i class="bi bi-chat-square-text-fill"></i> Interview
             </button>
             <button class="btn btn-sm btn-outline" (click)="promptStageChange(candidate, 'OFFERED')">
-              <i class="fas fa-file-signature"></i> Offer
+              <i class="bi bi-file-earmark-text-fill"></i> Offer
             </button>
             <button class="btn btn-sm btn-outline" (click)="promptStageChange(candidate, 'HIRED')">
-              <i class="fas fa-trophy"></i> Hire
+              <i class="bi bi-trophy-fill"></i> Hire
             </button>
           </div>
 
@@ -272,12 +272,12 @@
                     [disabled]="convertingCandidateId === candidate.id"
                     (click)="convertCandidate(candidate)"
                     title="Automatically provision Employee ID, directory record, and corporate credentials">
-              <i class="fas" [class.fa-user-check]="convertingCandidateId !== candidate.id" [class.fa-spinner]="convertingCandidateId === candidate.id" [class.fa-spin]="convertingCandidateId === candidate.id"></i>
+              <i class="bi" [class.bi-person-check-fill]="convertingCandidateId !== candidate.id" [class.bi-arrow-repeat]="convertingCandidateId === candidate.id" [class.spin]="convertingCandidateId === candidate.id"></i>
               {{ convertingCandidateId === candidate.id ? 'Onboarding...' : '1-Click Convert to Employee' }}
             </button>
 
             <span *ngIf="candidate.convertedToEmployee" class="converted-badge">
-              <i class="fas fa-id-badge"></i> Active Directory Employee
+              <i class="bi bi-person-badge-fill"></i> Active Directory Employee
             </span>
           </div>
         </div>
@@ -298,23 +298,23 @@
         </div>
 
         <h3 class="job-title">{{ job.title }}</h3>
-        <p class="job-dept"><i class="fas fa-sitemap"></i> {{ job.departmentName }} &bull; <i class="fas fa-map-marker-alt"></i> {{ job.location }}</p>
+        <p class="job-dept"><i class="bi bi-diagram-3-fill"></i> {{ job.departmentName }} &bull; <i class="bi bi-geo-alt-fill"></i> {{ job.location }}</p>
 
         <div class="job-meta-pills">
-          <span class="meta-pill"><i class="fas fa-briefcase"></i> {{ job.experienceRequired }}</span>
-          <span class="meta-pill"><i class="fas fa-coins"></i> {{ job.salaryRange }}</span>
-          <span class="meta-pill"><i class="fas fa-users"></i> {{ job.vacancies }} Open Position{{ job.vacancies > 1 ? 's' : '' }}</span>
+          <span class="meta-pill"><i class="bi bi-briefcase-fill"></i> {{ job.experienceRequired }}</span>
+          <span class="meta-pill"><i class="bi bi-cash-stack"></i> {{ job.salaryRange }}</span>
+          <span class="meta-pill"><i class="bi bi-people-fill"></i> {{ job.vacancies }} Open Position{{ job.vacancies > 1 ? 's' : '' }}</span>
         </div>
 
         <p class="job-desc">{{ job.description }}</p>
 
         <div class="job-card-footer">
           <div class="applicant-counter">
-            <i class="fas fa-user-friends text-blue"></i>
+            <i class="bi bi-people-fill text-blue"></i>
             <span><strong>{{ job.applicantCount }}</strong> Candidates Applied</span>
           </div>
           <button class="btn btn-sm btn-primary" (click)="selectedJobId = job.id; activeView = 'pipeline'; loadCandidates()">
-            View Pipeline <i class="fas fa-arrow-right"></i>
+            View Pipeline <i class="bi bi-arrow-right"></i>
           </button>
         </div>
       </div>
@@ -326,7 +326,7 @@
     <div class="modal-content glass-modal stage-modal">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <i class="fas fa-exchange-alt text-blue"></i>
+          <i class="bi bi-arrow-left-right text-blue"></i>
           <h3>Update Stage for {{ selectedCandidateForAction.fullName }}</h3>
         </div>
         <button class="btn-close" (click)="showStageModal = false">&times;</button>
@@ -365,7 +365,7 @@
     <div class="modal-content glass-modal job-modal">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <i class="fas fa-briefcase text-blue"></i>
+          <i class="bi bi-briefcase-fill text-blue"></i>
           <h3>Post New Job Requisition</h3>
         </div>
         <button class="btn-close" (click)="closeNewJob()">&times;</button>
@@ -426,7 +426,7 @@
       <div class="modal-footer">
         <button class="btn btn-outline" (click)="closeNewJob()">Cancel</button>
         <button class="btn btn-primary" (click)="submitNewJob()">
-          <i class="fas fa-check"></i> Publish Job Opening
+          <i class="bi bi-check-lg"></i> Publish Job Opening
         </button>
       </div>
     </div>

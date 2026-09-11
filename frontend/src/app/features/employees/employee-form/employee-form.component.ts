@@ -46,12 +46,12 @@ export class EmployeeFormComponent implements OnInit {
       firstName: ['', [Validators.required, Validators.minLength(2)]],
       lastName: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
-      empId: ['', [Validators.required]],
+      empId: [''],
       phone: ['', [Validators.pattern('^[0-9+ -]{7,15}$')]],
       departmentId: [null, [Validators.required]],
       designation: ['', [Validators.required]],
       salary: [null, [Validators.min(0)]],
-      hireDate: [new Date().toISOString().substring(0, 10), [Validators.required]],
+      dateOfJoining: [new Date().toISOString().substring(0, 10), [Validators.required]],
       status: ['ACTIVE', [Validators.required]],
       address: ['']
     });
@@ -83,7 +83,7 @@ export class EmployeeFormComponent implements OnInit {
             departmentId: emp.departmentId,
             designation: emp.designation,
             salary: emp.salary,
-            hireDate: emp.hireDate,
+            dateOfJoining: emp.dateOfJoining || emp.hireDate,
             status: emp.status || 'ACTIVE',
             address: emp.address
           });
@@ -109,7 +109,10 @@ export class EmployeeFormComponent implements OnInit {
 
     this.submitting = true;
     this.errorMessage = '';
-    const formVal = this.employeeForm.value;
+    const formVal = { ...this.employeeForm.value };
+    if (!this.isEditMode && !formVal.empId) {
+      delete formVal.empId;
+    }
 
     const request$ = this.isEditMode && this.employeeId
       ? this.employeeService.update(this.employeeId, formVal)

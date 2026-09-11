@@ -92,7 +92,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
         message: 'Your emergency contacts and credentials are up to date.',
         time: '2 days ago',
         type: 'system',
-        route: '/profile',
+        route: '/my-profile',
         read: true,
         icon: 'bi-shield-fill-check',
         iconBg: '#8b5cf6'
@@ -147,7 +147,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   goToProfile(): void {
     this.showNotifications = false;
-    this.router.navigate(['/profile']);
+    this.router.navigate(['/my-profile']);
   }
 
   logout(): void {

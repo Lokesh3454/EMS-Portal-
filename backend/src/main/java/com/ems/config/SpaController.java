@@ -20,7 +20,8 @@ public class SpaController {
         "/employees/**",
         "/departments",
         "/departments/**",
-        "/my-profile"
+        "/my-profile",
+        "/access-denied"
     })
     public String forwardToSpa() {
         return "forward:/index.html";

@@ -57,6 +57,10 @@ public class DocumentService {
         EmployeeDocument doc = documentRepository.findById(documentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
 
+        if (!doc.getEmployee().getEmail().equalsIgnoreCase(email)) {
+            throw new org.springframework.security.access.AccessDeniedException("You are not authorized to sign this document.");
+        }
+
         doc.setIsSigned(true);
         doc.setSignedAt(LocalDateTime.now());
         EmployeeDocument saved = documentRepository.save(doc);
@@ -65,8 +69,29 @@ public class DocumentService {
 
     @Transactional
     public EmployeeDocumentDto createDocument(EmployeeDocumentDto dto) {
-        Employee emp = employeeRepository.findById(dto.getEmployeeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + dto.getEmployeeId()));
+        return createDocument(dto, null, true);
+    }
+
+    @Transactional
+    public EmployeeDocumentDto createDocument(EmployeeDocumentDto dto, String callerEmail) {
+        return createDocument(dto, callerEmail, false);
+    }
+
+    @Transactional
+    public EmployeeDocumentDto createDocument(EmployeeDocumentDto dto, String callerEmail, boolean isPrivileged) {
+        Employee emp;
+        if (dto.getEmployeeId() != null) {
+            emp = employeeRepository.findById(dto.getEmployeeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + dto.getEmployeeId()));
+            if (!isPrivileged && callerEmail != null && !emp.getEmail().equalsIgnoreCase(callerEmail)) {
+                throw new org.springframework.security.access.AccessDeniedException("You are not authorized to upload documents for another employee.");
+            }
+        } else if (callerEmail != null) {
+            emp = employeeRepository.findByEmail(callerEmail)
+                    .orElseThrow(() -> new ResourceNotFoundException("Employee profile not found for email: " + callerEmail));
+        } else {
+            throw new IllegalArgumentException("Employee ID or authenticated user email is required for document upload");
+        }
 
         EmployeeDocument doc = new EmployeeDocument();
         doc.setEmployee(emp);

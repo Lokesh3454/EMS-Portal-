@@ -49,11 +49,11 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configure(http))
+            .cors(org.springframework.security.config.Customizer.withDefaults())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // Public Auth & preflight
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Static assets & Angular SPA routes
@@ -84,7 +84,8 @@ public class SecurityConfig {
                     "/employees/**",
                     "/departments",
                     "/departments/**",
-                    "/my-profile"
+                    "/my-profile",
+                    "/access-denied"
                 ).permitAll()
                 // All other API endpoints require JWT authentication
                 .requestMatchers("/api/**").authenticated()

@@ -23,11 +23,8 @@ yarn-error.log
 # IDE and Editors
 .idea/
 *.iml
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+.vscode/
+**/.vscode/
 
 # Logs
 *.log

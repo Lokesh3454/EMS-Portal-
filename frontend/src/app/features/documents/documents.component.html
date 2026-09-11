@@ -12,22 +12,22 @@
     </div>
     <div class="header-actions">
       <button class="btn btn-outline" (click)="loadDocuments()">
-        <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i> Refresh
+        <i class="bi bi-arrow-repeat" [class.spin]="loading"></i> Refresh
       </button>
       <button class="btn btn-primary" (click)="openUploadModal()">
-        <i class="fas fa-file-upload"></i> Upload Document
+        <i class="bi bi-upload"></i> Upload Document
       </button>
     </div>
   </div>
 
   <!-- Notification Banners -->
   <div *ngIf="actionMessage" class="alert alert-success">
-    <i class="fas fa-check-circle"></i>
+    <i class="bi bi-check-circle-fill"></i>
     <span>{{ actionMessage }}</span>
     <button class="alert-close" (click)="actionMessage = ''">&times;</button>
   </div>
   <div *ngIf="errorMessage" class="alert alert-danger">
-    <i class="fas fa-exclamation-triangle"></i>
+    <i class="bi bi-exclamation-triangle-fill"></i>
     <span>{{ errorMessage }}</span>
     <button class="alert-close" (click)="errorMessage = ''">&times;</button>
   </div>
@@ -43,7 +43,7 @@
         <div class="kpi-img-frame">
           <img src="assets/images/vault-total-docs.jpg" alt="Total Vault Documents" class="kpi-topic-img" />
         </div>
-        <span class="kpi-topic-tag"><i class="fas fa-database"></i> Encrypted Vault</span>
+        <span class="kpi-topic-tag"><i class="bi bi-database-fill"></i> Encrypted Vault</span>
       </div>
       <div class="kpi-info">
         <span class="kpi-label">Total Vault Documents</span>
@@ -61,7 +61,7 @@
         <div class="kpi-img-frame">
           <img src="assets/images/vault-digitally-signed.jpg" alt="Digitally Signed" class="kpi-topic-img" />
         </div>
-        <span class="kpi-topic-tag tag-verified"><i class="fas fa-certificate"></i> Verified</span>
+        <span class="kpi-topic-tag tag-verified"><i class="bi bi-patch-check-fill"></i> Verified</span>
       </div>
       <div class="kpi-info">
         <span class="kpi-label">Digitally Signed</span>
@@ -79,7 +79,7 @@
         <div class="kpi-img-frame">
           <img src="assets/images/vault-pending-sign.jpg" alt="Pending E-Signature" class="kpi-topic-img" />
         </div>
-        <span class="kpi-topic-tag tag-pending" [class.urgent]="pendingSignatureCount > 0"><i class="fas fa-pen-fancy"></i> Action Needed</span>
+        <span class="kpi-topic-tag tag-pending" [class.urgent]="pendingSignatureCount > 0"><i class="bi bi-pen-fill"></i> Action Needed</span>
       </div>
       <div class="kpi-info">
         <span class="kpi-label">Pending E-Signature</span>
@@ -97,7 +97,7 @@
         <div class="kpi-img-frame">
           <img src="assets/images/vault-security-shield.jpg" alt="Security Compliance" class="kpi-topic-img" />
         </div>
-        <span class="kpi-topic-tag tag-secure"><i class="fas fa-shield-alt"></i> ISO 27001</span>
+        <span class="kpi-topic-tag tag-secure"><i class="bi bi-shield-fill-check"></i> ISO 27001</span>
       </div>
       <div class="kpi-info">
         <span class="kpi-label">Security Compliance</span>
@@ -110,7 +110,7 @@
   <!-- Active Filter Response Banner -->
   <div *ngIf="activeKpiFilter !== 'ALL' || selectedCategory !== 'ALL' || searchQuery" class="active-filter-bar glass-panel">
     <div class="active-filter-label">
-      <i class="fas fa-filter text-blue"></i>
+      <i class="bi bi-funnel-fill text-blue"></i>
       <span>Showing Respective Documents: 
         <strong *ngIf="activeKpiFilter === 'SIGNED'">✓ Digitally Signed Documents</strong>
         <strong *ngIf="activeKpiFilter === 'PENDING'">⚠️ Documents Pending E-Signature</strong>
@@ -120,7 +120,7 @@
       </span>
     </div>
     <button class="btn btn-sm btn-outline clear-filter-btn" (click)="clearFilters()">
-      <i class="fas fa-times"></i> Clear Filter &amp; Show All
+      <i class="bi bi-x-lg"></i> Clear Filter &amp; Show All
     </button>
   </div>
 
@@ -148,7 +148,7 @@
     </div>
 
     <div class="search-box">
-      <i class="fas fa-search"></i>
+      <i class="bi bi-search"></i>
       <input type="text" [(ngModel)]="searchQuery" placeholder="Search by title, category, keywords..." />
       <button *ngIf="searchQuery" class="clear-search" (click)="searchQuery = ''">&times;</button>
     </div>
@@ -157,18 +157,18 @@
   <!-- Loading State -->
   <div *ngIf="loading" class="loading-state glass-panel">
     <div class="spinner"></div>
-    <p>Decrypting and loading documents from vault...</p>
+    <p>Accessing encrypted digital vault...</p>
   </div>
 
   <!-- Empty State -->
   <div *ngIf="!loading && filteredDocuments.length === 0" class="empty-state glass-panel">
-    <div class="empty-state-img-wrap">
-      <img src="assets/images/vault-total-docs.jpg" alt="Empty Vault" class="empty-topic-img" />
+    <div class="empty-icon-wrap">
+      <img src="assets/images/vault-total-docs.jpg" alt="No Documents" class="empty-state-img" />
     </div>
-    <h3>No documents found</h3>
-    <p>No documents match your current filter criteria or have been uploaded yet.</p>
+    <h3>No Vault Documents Found</h3>
+    <p>No documents match your active filter or search criteria. Upload corporate documents to securely store and e-sign records.</p>
     <button class="btn btn-primary" (click)="openUploadModal()">
-      <i class="fas fa-upload"></i> Upload First Document
+      <i class="bi bi-cloud-arrow-up-fill"></i> Upload First Document
     </button>
   </div>
 
@@ -181,35 +181,35 @@
         </div>
         <div class="doc-meta-info">
           <span class="badge-type">{{ doc.documentType.replace('_', ' ') }}</span>
-          <span class="file-size"><i class="fas fa-paperclip"></i> {{ doc.fileSize }} &bull; {{ doc.fileType }}</span>
+          <span class="file-size"><i class="bi bi-paperclip"></i> {{ doc.fileSize }} &bull; {{ doc.fileType }}</span>
         </div>
       </div>
 
       <div class="doc-card-body">
         <h3 class="doc-title" [title]="doc.title">{{ doc.title }}</h3>
-        <p class="doc-owner"><i class="fas fa-user-check"></i> {{ doc.employeeName }}</p>
-        <p class="doc-date"><i class="far fa-calendar-alt"></i> Uploaded: {{ doc.uploadDate | date:'mediumDate' }}</p>
+        <p class="doc-owner"><i class="bi bi-person-check-fill"></i> {{ doc.employeeName }}</p>
+        <p class="doc-date"><i class="bi bi-calendar3"></i> Uploaded: {{ doc.uploadDate | date:'mediumDate' }}</p>
       </div>
 
       <!-- Signature Status Banner -->
       <div class="signature-status-bar" [class.signed]="doc.isSigned" [class.unsigned]="!doc.isSigned">
         <span *ngIf="doc.isSigned">
-          <i class="fas fa-check-circle"></i> E-Signed: {{ doc.signedAt | date:'mediumDate' }}
+          <i class="bi bi-check-circle-fill"></i> E-Signed: {{ doc.signedAt | date:'mediumDate' }}
         </span>
         <span *ngIf="!doc.isSigned" class="action-req">
-          <i class="fas fa-pen-nib"></i> Pending E-Signature
+          <i class="bi bi-pen-fill"></i> Pending E-Signature
         </span>
       </div>
 
       <div class="doc-card-actions">
         <button class="btn btn-sm btn-outline" (click)="openPreview(doc)">
-          <i class="fas fa-eye"></i> View
+          <i class="bi bi-eye-fill"></i> View
         </button>
         <button *ngIf="!doc.isSigned" class="btn btn-sm btn-sign" (click)="openPreview(doc)">
-          <i class="fas fa-file-signature"></i> Sign Now
+          <i class="bi bi-file-earmark-text-fill"></i> Sign Now
         </button>
         <button class="btn btn-sm btn-icon" (click)="printOrDownload(doc)" title="Print / Export">
-          <i class="fas fa-download"></i>
+          <i class="bi bi-download"></i>
         </button>
       </div>
     </div>
@@ -233,20 +233,21 @@
         <!-- Corporate Document Paper Layout -->
         <div class="doc-paper">
           <div class="doc-paper-header">
-            <div class="corp-logo">
-              <img src="assets/images/vault-total-docs.jpg" class="corp-logo-mini" alt="Logo" />
-              <span>EMS ENTERPRISE CORP</span>
+            <div class="paper-logo">
+              <img src="assets/images/vault-total-docs.jpg" alt="Enterprise Logo" class="paper-seal-img" />
+              <div>
+                <h2>ENTERPRISE WORKFORCE SOLUTIONS</h2>
+                <p>Digital Document Vault &bull; Official Compliance Copy</p>
+              </div>
             </div>
-            <div class="corp-doc-meta">
-              <span>DOC REF: EMS-DOC-2026-{{ previewModalDoc.id }}</span>
-              <span>DATE: {{ previewModalDoc.uploadDate | date:'longDate' }}</span>
+            <div class="paper-ref">
+              <span>DOC REF: EMS-DOC-{{ previewModalDoc.id }}</span>
+              <span>DATE: {{ previewModalDoc.uploadDate | date:'mediumDate' }}</span>
             </div>
           </div>
 
-          <div class="doc-watermark">CONFIDENTIAL &bull; EMS OFFICIAL</div>
-
-          <div class="doc-content-text">
-            <h2 class="doc-main-heading">{{ previewModalDoc.title }}</h2>
+          <div class="doc-paper-content">
+            <h1 class="paper-title">{{ previewModalDoc.title }}</h1>
             <div class="doc-recipient-box">
               <p><strong>Issued To:</strong> {{ previewModalDoc.employeeName }}</p>
               <p><strong>Compliance Standard:</strong> ISO 27001 / Digital IT Signature Act §2026</p>
@@ -259,14 +260,14 @@
             <!-- Signature Certificate Box -->
             <div class="signature-certificate-box" [class.verified]="previewModalDoc.isSigned">
               <div class="sig-cert-header">
-                <i class="fas" [ngClass]="previewModalDoc.isSigned ? 'fa-certificate text-green' : 'fa-pen-fancy text-amber'"></i>
+                <i class="bi" [ngClass]="previewModalDoc.isSigned ? 'bi-patch-check-fill text-green' : 'bi-pen-fill text-amber'"></i>
                 <h4>Digital Signature Verification</h4>
               </div>
 
               <!-- Signed State -->
               <div *ngIf="previewModalDoc.isSigned" class="signed-stamp-details">
                 <div class="stamp-seal">
-                  <i class="fas fa-check-double"></i>
+                  <i class="bi bi-check-all"></i>
                   <span>VERIFIED</span>
                 </div>
                 <div class="stamp-info">
@@ -301,13 +302,13 @@
       <div class="modal-footer">
         <button class="btn btn-outline" (click)="closePreview()">Close</button>
         <button class="btn btn-secondary" (click)="printOrDownload(previewModalDoc)">
-          <i class="fas fa-print"></i> Print / PDF
+          <i class="bi bi-printer-fill"></i> Print / PDF
         </button>
         <button *ngIf="!previewModalDoc.isSigned" 
                 class="btn btn-primary" 
                 [disabled]="!signatureConsent || isSigning"
                 (click)="signCurrentDocument()">
-          <i class="fas" [class.fa-file-signature]="!isSigning" [class.fa-spinner]="isSigning" [class.fa-spin]="isSigning"></i>
+          <i class="bi" [class.bi-file-earmark-text-fill]="!isSigning" [class.bi-arrow-repeat]="isSigning" [class.spin]="isSigning"></i>
           {{ isSigning ? 'Affixing Digital Signature...' : 'Adopt & Sign Electronically' }}
         </button>
       </div>
@@ -358,7 +359,7 @@
       <div class="modal-footer">
         <button class="btn btn-outline" (click)="closeUploadModal()">Cancel</button>
         <button class="btn btn-primary" (click)="submitUpload()">
-          <i class="fas fa-check"></i> Upload &amp; Encrypt
+          <i class="bi bi-check-lg"></i> Upload &amp; Encrypt
         </button>
       </div>
     </div>

@@ -122,6 +122,10 @@ public class PerformanceService {
         PerformanceReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
 
+        if (managerEmail != null && review.getEmployee().getEmail().equalsIgnoreCase(managerEmail)) {
+            throw new IllegalArgumentException("Managers cannot evaluate their own performance reviews.");
+        }
+
         Employee manager = employeeRepository.findByEmail(managerEmail).orElse(null);
         if (manager != null) {
             review.setManager(manager);
@@ -186,8 +190,17 @@ public class PerformanceService {
 
     @Transactional
     public EmployeeGoalDto updateGoalProgress(Long goalId, Integer progress, String status) {
+        return updateGoalProgress(goalId, progress, status, null, true);
+    }
+
+    @Transactional
+    public EmployeeGoalDto updateGoalProgress(Long goalId, Integer progress, String status, String callerEmail, boolean isManagerOrAdmin) {
         EmployeeGoal goal = goalRepository.findById(goalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Goal not found with id: " + goalId));
+
+        if (!isManagerOrAdmin && callerEmail != null && !goal.getEmployee().getEmail().equalsIgnoreCase(callerEmail)) {
+            throw new org.springframework.security.access.AccessDeniedException("You are not authorized to update this goal.");
+        }
 
         if (progress != null) {
             goal.setProgressPercentage(Math.max(0, Math.min(100, progress)));

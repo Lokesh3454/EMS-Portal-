@@ -183,6 +183,7 @@ export class DocumentsComponent implements OnInit {
     }
 
     const payload: Partial<EmployeeDocument> = {
+      employeeId: this.currentUser?.employeeId,
       title: this.uploadTitle.trim(),
       documentType: this.uploadType,
       fileSize: '1.2 MB',

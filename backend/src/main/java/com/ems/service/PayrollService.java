@@ -121,6 +121,16 @@ public class PayrollService {
         return toRecordDto(record);
     }
 
+    @Transactional(readOnly = true)
+    public PayrollRecordDto getPayslipById(Long id, String callerEmail, boolean isPrivileged) {
+        PayrollRecord record = payrollRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Payroll record not found with id: " + id));
+        if (!isPrivileged && (callerEmail == null || !record.getEmployee().getEmail().equalsIgnoreCase(callerEmail))) {
+            throw new org.springframework.security.access.AccessDeniedException("You are not authorized to view this payslip.");
+        }
+        return toRecordDto(record);
+    }
+
     @Transactional
     public List<PayrollRecordDto> generateMonthlyPayroll(Integer month, Integer year) {
         YearMonth ym = YearMonth.of(year, month);

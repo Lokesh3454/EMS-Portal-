@@ -112,7 +112,12 @@ export class DepartmentListComponent implements OnInit {
         next: (res) => {
           if (res.success) {
             this.loadDepartments();
+          } else {
+            alert(res.message || 'Failed to delete department.');
           }
+        },
+        error: (err) => {
+          alert(err.error?.message || 'Cannot delete department with assigned employees.');
         }
       });
     }

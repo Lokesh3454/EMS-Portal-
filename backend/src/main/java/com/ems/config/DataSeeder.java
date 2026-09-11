@@ -85,24 +85,51 @@ public class DataSeeder implements CommandLineRunner {
 
     private void seedAdminUser() {
         String adminEmail = "admin@ems.com";
-        if (userRepository.findByEmail(adminEmail).isEmpty()) {
-            Role adminRole = roleRepository.findByName(Role.RoleName.ROLE_ADMIN)
-                    .orElseThrow(() -> new RuntimeException("Admin role not found"));
+        Role adminRole = roleRepository.findByName(Role.RoleName.ROLE_ADMIN)
+                .orElseThrow(() -> new RuntimeException("Admin role not found"));
 
-            User admin = new User();
-            admin.setEmail(adminEmail);
-            admin.setPassword(passwordEncoder.encode("Admin@123"));
-            admin.setRole(adminRole);
-            admin.setIsActive(true);
-            admin.setFirstLogin(false);
-            userRepository.save(admin);
+        User admin = userRepository.findByEmail(adminEmail).orElseGet(() -> {
+            User u = new User();
+            u.setEmail(adminEmail);
+            u.setPassword(passwordEncoder.encode("Admin@123"));
+            u.setRole(adminRole);
+            u.setIsActive(true);
+            u.setFirstLogin(false);
+            return userRepository.save(u);
+        });
 
-            log.info("===========================================");
-            log.info("  DEFAULT ADMIN CREDENTIALS CREATED");
-            log.info("  Email   : admin@ems.com");
-            log.info("  Password: Admin@123");
-            log.info("===========================================");
+        Department adminDept = departmentRepository.findByName("Administration")
+                .or(() -> departmentRepository.findAll().stream().findFirst())
+                .orElse(null);
+
+        if (employeeRepository.findByEmail(adminEmail).isEmpty()) {
+            Employee adminEmp = new Employee();
+            adminEmp.setEmpId("ADM001");
+            adminEmp.setFirstName("System");
+            adminEmp.setLastName("Administrator");
+            adminEmp.setEmail(adminEmail);
+            adminEmp.setPhone("+1 555-0100");
+            adminEmp.setDesignation("System Administrator");
+            adminEmp.setDepartment(adminDept);
+            adminEmp.setDateOfJoining(LocalDate.of(2023, 1, 1));
+            adminEmp.setStatus(Employee.EmployeeStatus.ACTIVE);
+            adminEmp.setAddress("Headquarters, Executive Suite 100");
+            adminEmp.setUser(admin);
+            employeeRepository.save(adminEmp);
+            log.info("Seeded admin employee profile: {}", adminEmail);
+        } else {
+            Employee emp = employeeRepository.findByEmail(adminEmail).get();
+            if (emp.getUser() == null) {
+                emp.setUser(admin);
+                employeeRepository.save(emp);
+            }
         }
+
+        log.info("===========================================");
+        log.info("  DEFAULT ADMIN CREDENTIALS CREATED");
+        log.info("  Email   : admin@ems.com");
+        log.info("  Password: Admin@123");
+        log.info("===========================================");
     }
 
     private void seedDemoUsersAndEmployees() {

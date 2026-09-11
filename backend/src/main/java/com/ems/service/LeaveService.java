@@ -26,6 +26,7 @@ public class LeaveService {
     private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
+    private final AttendanceRepository attendanceRepository;
 
     @Transactional
     public LeaveResponseDto applyLeave(String email, LeaveApplicationDto dto) {
@@ -135,21 +136,42 @@ public class LeaveService {
             throw new IllegalArgumentException("Status must be APPROVED or REJECTED");
         }
 
+        if (reviewerEmail != null && request.getEmployee().getEmail().equalsIgnoreCase(reviewerEmail)) {
+            throw new IllegalArgumentException("You cannot approve or reject your own leave request.");
+        }
+
         request.setStatus(newStatus);
         request.setReviewedBy(reviewerEmail);
         request.setReviewedAt(LocalDateTime.now());
         request.setReviewRemarks(reviewDto.getRemarks());
 
         // Deduct from balance on approval if not WFH
-        if (newStatus == LeaveRequest.LeaveStatus.APPROVED && request.getLeaveType() != LeaveRequest.LeaveType.WFH) {
-            LeaveBalance balance = getOrCreateBalance(request.getEmployee(), request.getStartDate().getYear());
-            switch (request.getLeaveType()) {
-                case CASUAL -> balance.setCasualLeavesRemaining(Math.max(0, balance.getCasualLeavesRemaining() - request.getTotalDays()));
-                case SICK -> balance.setSickLeavesRemaining(Math.max(0, balance.getSickLeavesRemaining() - request.getTotalDays()));
-                case EARNED -> balance.setEarnedLeavesRemaining(Math.max(0, balance.getEarnedLeavesRemaining() - request.getTotalDays()));
-                default -> {}
+        if (newStatus == LeaveRequest.LeaveStatus.APPROVED) {
+            if (request.getLeaveType() != LeaveRequest.LeaveType.WFH) {
+                LeaveBalance balance = getOrCreateBalance(request.getEmployee(), request.getStartDate().getYear());
+                switch (request.getLeaveType()) {
+                    case CASUAL -> balance.setCasualLeavesRemaining(Math.max(0, balance.getCasualLeavesRemaining() - request.getTotalDays()));
+                    case SICK -> balance.setSickLeavesRemaining(Math.max(0, balance.getSickLeavesRemaining() - request.getTotalDays()));
+                    case EARNED -> balance.setEarnedLeavesRemaining(Math.max(0, balance.getEarnedLeavesRemaining() - request.getTotalDays()));
+                    default -> {}
+                }
+                leaveBalanceRepository.save(balance);
+
+                // Sync with attendance records as ON_LEAVE
+                LocalDate current = request.getStartDate();
+                while (!current.isAfter(request.getEndDate())) {
+                    LocalDate date = current;
+                    Attendance att = attendanceRepository.findByEmployeeAndDate(request.getEmployee(), date)
+                            .orElse(Attendance.builder()
+                                    .employee(request.getEmployee())
+                                    .date(date)
+                                    .build());
+                    att.setStatus(Attendance.AttendanceStatus.ON_LEAVE);
+                    att.setNotes("Approved Leave: " + request.getLeaveType().name());
+                    attendanceRepository.save(att);
+                    current = current.plusDays(1);
+                }
             }
-            leaveBalanceRepository.save(balance);
         }
 
         LeaveRequest saved = leaveRequestRepository.save(request);
@@ -184,7 +206,16 @@ public class LeaveService {
                     .orElse(null);
 
             Employee adminEmp = new Employee();
-            adminEmp.setEmpId("ADM001");
+            String code = "ADM001";
+            if (employeeRepository.existsByEmpId(code)) {
+                long next = employeeRepository.count() + 1;
+                code = String.format("EMP%03d", next);
+                while (employeeRepository.existsByEmpId(code)) {
+                    next++;
+                    code = String.format("EMP%03d", next);
+                }
+            }
+            adminEmp.setEmpId(code);
             adminEmp.setFirstName("System");
             adminEmp.setLastName("Administrator");
             adminEmp.setEmail(user.getEmail());

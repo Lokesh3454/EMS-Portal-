@@ -16,6 +16,7 @@ import { PerformanceComponent } from './features/performance/performance.compone
 import { DocumentsComponent } from './features/documents/documents.component';
 import { RecruitmentComponent } from './features/recruitment/recruitment.component';
 import { AuthGuard } from './core/guards/auth.guard';
+import { RoleGuard } from './core/guards/role.guard';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -28,17 +29,19 @@ const routes: Routes = [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'attendance', component: AttendanceComponent },
       { path: 'leaves', component: LeavesComponent },
-      { path: 'manager', component: ManagerPortalComponent },
+      { path: 'manager', component: ManagerPortalComponent, canActivate: [RoleGuard], data: { roles: ['ROLE_ADMIN', 'ROLE_HR', 'ROLE_MANAGER'] } },
       { path: 'payroll', component: PayrollComponent },
       { path: 'performance', component: PerformanceComponent },
       { path: 'documents', component: DocumentsComponent },
-      { path: 'recruitment', component: RecruitmentComponent },
-      { path: 'employees', component: EmployeeListComponent },
-      { path: 'employees/new', component: EmployeeFormComponent },
-      { path: 'employees/:id/edit', component: EmployeeFormComponent },
-      { path: 'employees/:id', component: EmployeeDetailComponent },
-      { path: 'departments', component: DepartmentListComponent },
+      { path: 'recruitment', component: RecruitmentComponent, canActivate: [RoleGuard], data: { roles: ['ROLE_ADMIN', 'ROLE_HR', 'ROLE_MANAGER'] } },
+      { path: 'employees', component: EmployeeListComponent, canActivate: [RoleGuard], data: { roles: ['ROLE_ADMIN', 'ROLE_HR', 'ROLE_MANAGER'] } },
+      { path: 'employees/new', component: EmployeeFormComponent, canActivate: [RoleGuard], data: { roles: ['ROLE_ADMIN', 'ROLE_HR'] } },
+      { path: 'employees/:id/edit', component: EmployeeFormComponent, canActivate: [RoleGuard], data: { roles: ['ROLE_ADMIN', 'ROLE_HR'] } },
+      { path: 'employees/:id', component: EmployeeDetailComponent, canActivate: [RoleGuard], data: { roles: ['ROLE_ADMIN', 'ROLE_HR', 'ROLE_MANAGER'] } },
+      { path: 'departments', component: DepartmentListComponent, canActivate: [RoleGuard], data: { roles: ['ROLE_ADMIN', 'ROLE_HR'] } },
       { path: 'my-profile', component: MyProfileComponent },
+      { path: 'profile', redirectTo: 'my-profile' },
+      { path: 'access-denied', redirectTo: 'dashboard' }
     ]
   },
   { path: '**', redirectTo: 'dashboard' }

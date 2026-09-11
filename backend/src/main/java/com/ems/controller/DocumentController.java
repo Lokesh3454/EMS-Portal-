@@ -44,9 +44,14 @@ public class DocumentController {
     }
 
     @PostMapping("/upload")
-    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
-    public ResponseEntity<ApiResponse<EmployeeDocumentDto>> uploadDocument(@RequestBody EmployeeDocumentDto dto) {
-        EmployeeDocumentDto created = documentService.createDocument(dto);
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<EmployeeDocumentDto>> uploadDocument(
+            @RequestBody EmployeeDocumentDto dto,
+            Authentication authentication) {
+        String email = authentication.getName();
+        boolean isPrivileged = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
+        EmployeeDocumentDto created = documentService.createDocument(dto, email, isPrivileged);
         return ResponseEntity.ok(ApiResponse.success("Document uploaded successfully to vault", created));
     }
 }

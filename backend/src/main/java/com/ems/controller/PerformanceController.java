@@ -87,11 +87,15 @@ public class PerformanceController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<EmployeeGoalDto>> updateGoalProgress(
             @PathVariable Long goalId,
-            @RequestBody Map<String, Object> body) {
+            @RequestBody Map<String, Object> body,
+            Authentication authentication) {
         Integer progress = body.containsKey("progress") ? Integer.valueOf(body.get("progress").toString()) : null;
         String status = body.containsKey("status") ? body.get("status").toString() : null;
 
-        EmployeeGoalDto updated = performanceService.updateGoalProgress(goalId, progress, status);
+        boolean isManagerOrAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR") || a.getAuthority().equals("ROLE_MANAGER"));
+
+        EmployeeGoalDto updated = performanceService.updateGoalProgress(goalId, progress, status, authentication.getName(), isManagerOrAdmin);
         return ResponseEntity.ok(ApiResponse.success("Goal progress updated", updated));
     }
 }
